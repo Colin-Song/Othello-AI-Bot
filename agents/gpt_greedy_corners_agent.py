@@ -39,6 +39,7 @@ class StudentAgent(Agent):
         """
         # Get all legal moves for the current player
         legal_moves = get_valid_moves(board, color)
+        
 
         if not legal_moves:
             return None  # No valid moves available, pass turn

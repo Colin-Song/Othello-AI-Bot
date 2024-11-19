@@ -52,18 +52,18 @@ class StudentAgent(Agent):
     if not valid_moves:
       return 
     
+    best_move = None
+    best_score = float('-inf')
+    
     for move in valid_moves:
-        simulated_board = copy.deepcopy(chess_board)
-        execute_move(simulated_board, move, color)
-        _, player_score, opponent_score = check_endgame(simulated_board, color, 3 - color)
-        move_score = self.evaluate_board(simulated_board, color, player_score, opponent_score)
+        move_score = value_board[move]
 
         if move_score > best_score:
             best_score = move_score
             best_move = move
 
     # Return the best move found
-    return best_move if best_move else random.choice(legal_moves)
+    return best_move
 
 
     # Some simple code to help you with timing. Consider checking 
@@ -77,4 +77,6 @@ class StudentAgent(Agent):
     # Dummy return (you should replace this with your actual logic)
     # Returning a random valid move as an example
     return random_move(chess_board,player)
+  
+  #python simulator.py --player_1 student_agent --player_2 random_agent --display
 
