@@ -1,0 +1,20 @@
+Positional value (value board)
+Mobility (number of our valid moves - number of opp valid moves)
+Stability (number of our stable discs - number of opp stable discs)
+Frontier discs (number of opp frontiers - number of our frontiers
+Greed Penalty?
+
+
+Function = w1*PositionalValue + w2*Mobility + w3*Stability + w4*Frontier
+
+
+Get valid moves list
+Iterate through valid moves list
+	Apply function on move
+		(For move get positional value of that move,
+		Get mobility of board after the move,
+		Get stability of board after the move,
+		Get frontier discs after the move)
+	Store this value/move
+
+From best move to worst move, run MTCS and then decide on move based off of MTCS
