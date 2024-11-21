@@ -20,7 +20,7 @@ class World:
         self,
         player_1="random_agent",
         player_2="random_agent",
-        board_size=8,
+        board_size=None,
         display_ui=False,
         display_delay=0.4,
         display_save=False,
@@ -81,7 +81,7 @@ class World:
 
         if board_size is None:
             # Random board size, ensuring even numbers for Reversi Othello
-            self.board_size = np.random.choice([8])
+            self.board_size = np.random.choice([7, 9, 11, 13])
             logger.info(
                 f"No board size specified. Randomly generating size: {self.board_size}x{self.board_size}"
             )

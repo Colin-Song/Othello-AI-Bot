@@ -1,10 +1,11 @@
 from agents.agent import Agent
 from store import register_agent
+import sys
 import numpy as np
 from copy import deepcopy
-from helpers import count_capture, execute_move, get_valid_moves, check_endgame
 import time
-import math
+from helpers import random_move, count_capture, execute_move, check_endgame, get_valid_moves
+
 
 
 @register_agent("second_agent")
@@ -23,7 +24,7 @@ class SecondAgent(Agent):
         """
 
         # MCTS Parameters
-        exploration_param = math.sqrt(2)# exploration weight for the UCB formula
+        exploration_param = np.sqrt(2)# exploration weight for the UCB formula
         time_limit = 1.95               # max 2 seconds for computation so we limit to 1.95sec
         start_time = time.time()
 
@@ -61,8 +62,8 @@ class SecondAgent(Agent):
                         # exploitation: average WR of the child
                         exploitation = child.wins / child.visits    
                         # exploration: encourage it to visit less-visited nodes
-                        exploration = exploration_weight * math.sqrt(
-                            math.log(self.visits) / child.visits
+                        exploration = exploration_weight * np.sqrt(
+                            np.log(self.visits) / child.visits
                         )
                         score = exploitation + exploration
                     else:
@@ -165,3 +166,4 @@ class SecondAgent(Agent):
         # Choose the best move after search is done
         best_move = root.best_child(exploration_weight=0).move
         return best_move
+

@@ -1,13 +1,18 @@
-1. Choose root node
-2. Apply eval function to children of root node and select best children
-3. Apply MCTS on child where opp's move uses heuristic function in simulation
-4. Have minimum of x number of games for each child node (don't want to miss out on a good move just because first x-n simulations were losses)
-5. Store simulation games
-6. If child node leads to many losses, move on to next child node and repeat steps 3-5
-7. If child node has many wins and continues to simulate until time expires, make this move and delete simulations that did not have this move
-8. Opp makes move
-9. Get current state and from saved simulations, delete all states that do not have latest opp's move
+How Our Algo Runs
+	1. Choose root node
+	2. Apply eval function to children of root node and select best children
+	3. Apply MCTS on child where opp's move uses heuristic function in simulation
+	4. Have minimum of x number of games for each child node (don't want to miss out on a good move just because first x-n simulations were losses)
+	5. Store simulation games
+	6. If child node leads to many losses, move on to next child node and repeat steps 3-5
+	7. If child node has many wins and continues to simulate until time expires, make this move and delete simulations that did not have this move
+	8. Opp makes move
+	9. Get current state and from saved simulations, delete all states that do not have latest opp's move
 
+Things We Need To Do:
+	- implement best moves into MCTS
+	- implement depth limit
+	- in MCTS select opp's move using heuristic function
 
 Heuristic Function
 	Positional value (value board)
