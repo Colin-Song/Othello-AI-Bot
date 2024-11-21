@@ -71,7 +71,10 @@ class StudentAgent(Agent):
     # get valid moves for player
     valid_moves = get_valid_moves(curr_state, player)
 
-    
+    best_moves = eval_moves(curr_state, valid_moves, player)
+
+    def eval_moves(curr_state, valid_moves, player):
+        for move in best_moves:
 
     # get all valid moves
     # trim valid moves
