@@ -1,4 +1,5 @@
 #python simulator.py --player_1 second_agent --player_2 student_agent --display
+#python simulator.py --player_1 second_agent --player_2 student_agent --autoplay_runs 15 --autoplay
 # Student agent: Add your own agent here
 from agents.agent import Agent
 from store import register_agent
@@ -278,7 +279,7 @@ class StudentAgent(Agent):
                 # get positional value of move
                 value_move = int(value_board[move])
                 # value move weight
-                value_move_w = 1
+                value_move_w = 0.5
 
                 # execute move on board_copy
                 execute_move(board_copy, move, player)
@@ -289,7 +290,7 @@ class StudentAgent(Agent):
                 # calculate mobility value
                 mobility = len(future_player_openmoves) - len(future_opp_openmoves)
                 # mobility weight
-                mobility_w = 1
+                mobility_w = 0.7
 
                 # get number of player's stable discs
                 player_stable_discs = count_stable_discs(board_copy, player)
@@ -305,7 +306,7 @@ class StudentAgent(Agent):
                 # calculate frontier value
                 frontier = len(player_frontiers) - len(opp_frontiers)
                 # frontier weight
-                frontier_w = 1
+                frontier_w = 0.7
 
                 # calculate the board score for the player given the move
                 board_value = value_move*value_move_w + mobility*mobility_w + stability*stability_w + frontier*frontier_w
@@ -314,7 +315,7 @@ class StudentAgent(Agent):
 
             
             # sort the list given the board score
-            best_moves = sorted(moves_eval, key=lambda item: item[1])
+            best_moves = sorted(moves_eval, key=lambda item: item[1], reverse=True)
             # remove the board score and return the list
             return [(int(item[1]), int(item[4])) for item in best_moves]
         
@@ -412,11 +413,6 @@ class StudentAgent(Agent):
         state = "mid" if move_count > 5 else "early"
         # get value board
         value_board = select_board(state, board_size)
-
-        valid_moves = get_valid_moves(board_copy, player)
-        print(valid_moves)
-        best_moves = eval_moves(board_copy, value_board, valid_moves, player, opponent)
-        
 
         # initialize the root node with the current board state
         root = Node(chess_board)
