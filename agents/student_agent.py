@@ -373,7 +373,7 @@ class StudentAgent(Agent):
                         break
                 
                 # select a random move and do it
-                move = best_move[0]
+                move = best_moves[0]
                 execute_move(sim_board, move, sim_player)
                 sim_player, sim_opponent = sim_opponent, sim_player # switch turns
                 
