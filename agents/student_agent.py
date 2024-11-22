@@ -265,7 +265,7 @@ class StudentAgent(Agent):
                                     break  # Stop checking further directions for this disc
 
             return player_1_frontier, player_2_frontier
-        
+        #python simulator.py --player_1 second_agent --player_2 student_agent --display
         def eval_moves(board, value_board, valid_moves, player, opponent):
             """
             Evaluate best moves for a player
@@ -276,7 +276,7 @@ class StudentAgent(Agent):
             # iterate through all valid moves
             for move in valid_moves:
                 # get positional value of move
-                value_move = value_board[move]
+                value_move = int(value_board[move])
                 # value move weight
                 value_move_w = 1
 
@@ -303,19 +303,20 @@ class StudentAgent(Agent):
                 # get number of player's, opp's frontier discs
                 player_frontiers, opp_frontiers = get_frontier_discs_by_player(board_copy)
                 # calculate frontier value
-                frontier = player_frontiers - opp_frontiers
+                frontier = len(player_frontiers) - len(opp_frontiers)
                 # frontier weight
                 frontier_w = 1
 
                 # calculate the board score for the player given the move
                 board_value = value_move*value_move_w + mobility*mobility_w + stability*stability_w + frontier*frontier_w
                 # append the move and the board score to moves_eval list
-                moves_eval.append(f"({move}) {board_value}")
+                moves_eval.append(f"{move} {board_value}")
 
+            
             # sort the list given the board score
-            best_moves = sorted(best_moves, key=lambda item: int(item.split()[-1]), reverse=True)
+            best_moves = sorted(moves_eval, key=lambda item: item[1])
             # remove the board score and return the list
-            return [item.split()[0] for item in best_moves]
+            return [(int(item[1]), int(item[4])) for item in best_moves]
         
 
         # MCTS Functions: select, expand, simulate, backpropagate
@@ -411,6 +412,11 @@ class StudentAgent(Agent):
         state = "mid" if move_count > 5 else "early"
         # get value board
         value_board = select_board(state, board_size)
+
+        valid_moves = get_valid_moves(board_copy, player)
+        print(valid_moves)
+        best_moves = eval_moves(board_copy, value_board, valid_moves, player, opponent)
+        
 
         # initialize the root node with the current board state
         root = Node(chess_board)
