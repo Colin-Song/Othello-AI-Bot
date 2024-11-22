@@ -14,7 +14,7 @@ class ValueBoard:
     """
     def __init__(self, board_size, move_count):
         self.size = board_size
-        self.state = "mid" if self.move_count > 10 else "early" # change move count determiner (10)
+        self.state = "mid" if self.move_count > 10 else "early" # change move count determiner (5)
         self.early_value_board_6 = np.array([
             [120, -20,  20,  20, -20, 120],
             [-20, -40,  -5,  -5, -40, -20],
@@ -271,10 +271,11 @@ class StudentAgent(Agent):
 
             return player_1_frontier, player_2_frontier
         
-        def eval_moves(board_copy, value_board, valid_moves, player, opponent):
+        def eval_moves(board, value_board, valid_moves, player, opponent):
             """
             Evaluate best moves for a player
             """
+            board_copy = deepcopy(board)
             # make list for moves
             moves_eval = []
             # iterate through all valid moves
@@ -341,7 +342,8 @@ class StudentAgent(Agent):
             If a node is not fully expanded, create a child for one of its unexplored valid moves.
             """
             valid_moves = get_valid_moves(node.board, player)
-            for move in valid_moves:
+            best_moves = eval_moves(node.board, value_board, valid_moves, player, opponent)
+            for move in best_moves:
                 # check if this has already been explored
                 if not any(child.move == move for child in node.children):
                     # create a new board state by applying the move
@@ -365,16 +367,18 @@ class StudentAgent(Agent):
 
             while True:
                 valid_moves = get_valid_moves(sim_board, sim_player)
-                if not valid_moves:
+                best_moves = eval_moves(sim_board, value_board, valid_moves, player, opponent)
+                if not best_moves:
                     # if no valid moves, swap turns
                     sim_player, sim_opponent = sim_opponent, sim_player
                     valid_moves = get_valid_moves(sim_board, sim_player)
-                    if not valid_moves:  # no more moves so game ends
+                    best_moves = eval_moves(sim_board, value_board, valid_moves, player, opponent)
+                    if not best_moves:  # no more moves so game ends
                         break
                 
                 # select a random move and do it
-                random_move = valid_moves[np.random.randint(len(valid_moves))]
-                execute_move(sim_board, random_move, sim_player)
+                move = best_move[0]
+                execute_move(sim_board, move, sim_player)
                 sim_player, sim_opponent = sim_opponent, sim_player # switch turns
                 
                 
@@ -411,12 +415,6 @@ class StudentAgent(Agent):
         move_count = np.sum(chess_board == 1) + np.sum(chess_board == 2) - 4
         # get value board
         value_board = ValueBoard(board_size, move_count)
-
-        # get valid moves for player
-        valid_moves = get_valid_moves(board_copy, player)
-
-        best_moves = eval_moves(board_copy, value_board, valid_moves, player, opponent)
-
 
         # initialize the root node with the current board state
         root = Node(chess_board)
