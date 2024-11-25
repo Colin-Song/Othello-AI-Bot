@@ -311,12 +311,12 @@ class StudentAgent(Agent):
                 # calculate the board score for the player given the move
                 board_value = value_move*value_move_w + mobility*mobility_w + stability*stability_w + frontier*frontier_w
                 # append the move and the board score to moves_eval list
-                moves_eval.append(f"{move} {board_value}")
+                moves_eval.append((move, board_value))
 
             
             # sort the list given the board score
             best_moves = sorted(moves_eval, key=lambda item: item[1], reverse=True)
-            # remove the board score and return the list
+            # extract only the moves for return
             return [(int(item[1]), int(item[4])) for item in best_moves]
         
 
