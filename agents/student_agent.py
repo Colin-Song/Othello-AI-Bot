@@ -314,10 +314,11 @@ class StudentAgent(Agent):
                 moves_eval.append((move, board_value))
 
             
-            # sort the list given the board score
+            # sort the list given the board score, descending order
             best_moves = sorted(moves_eval, key=lambda item: item[1], reverse=True)
-            # extract only the moves for return
-            return [(int(item[1]), int(item[4])) for item in best_moves]
+            # extract only the moves (sorted by score)
+            return [item[0] for item in best_moves]
+
         
 
         # MCTS Functions: select, expand, simulate, backpropagate
@@ -401,7 +402,7 @@ class StudentAgent(Agent):
 
         # keep track of time for turn
         start_time = time.time()
-        time_limit = 1.95  
+        time_limit = 1.90  
 
         # get current state of board
         board_copy = deepcopy(chess_board)
