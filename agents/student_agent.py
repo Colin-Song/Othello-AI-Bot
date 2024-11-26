@@ -116,7 +116,7 @@ class StudentAgent(Agent):
         super(StudentAgent, self).__init__()
         self.name = "StudentAgent"
 
-    def step(self, chess_board, player, opponent):
+    def step(self, board, player, opponent):
         """
         Implements MCTS with heuristics to guide early-game play.
         """
@@ -167,74 +167,42 @@ class StudentAgent(Agent):
         
         def select_board(state, size):
             return globals()[f"{state}_value_board_{size}"]
-            
-        def mark_stable_discs(chess_board, stable, position, player, directions):
-            """
-            Marks discs as stable recursively starting from a given position.
 
-            Parameters:
-            - chess_board: numpy.ndarray, the current board state.
-            - stable: numpy.ndarray, a board to mark stable discs.
-            - position: tuple, the starting position to check stability (row, col).
-            - player: int, the player whose discs are being marked as stable.
-            - directions: list, the directions to traverse the board.
-            """
-            board_size = chess_board.shape[0]
-            queue = [position]  # Use a queue for breadth-first traversal
 
-            while queue:
-                r, c = queue.pop(0)
-                if stable[r, c] == player:  # Already marked as stable
-                    continue
-
-                stable[r, c] = player  # Mark the disc as stable
-
-                # Check all directions
-                for dr, dc in directions:
-                    nr, nc = r + dr, c + dc
-                while 0 <= nr < board_size and 0 <= nc < board_size:
-                    if chess_board[nr, nc] != player or stable[nr, nc] == player:
-                        break
-                    # Add to queue if the disc is of the player's color and not yet stable
-                    if chess_board[nr, nc] == player:
-                        queue.append((nr, nc))
-                    nr += dr
-                    nc += dc
-
-        def count_stable_discs(chess_board, player):
+        def count_stable_discs(board, player):
             """
             Counts the number of stable discs for a given player on the board.
             
             Parameters:
-            - chess_board: numpy.ndarray, the current board state.
+            - board: numpy.ndarray, the current board state.
                             0: empty, 1: Player 1 (Blue), 2: Player 2 (Brown)
             - player: int, the player whose stable discs are being counted (1 or 2).
             
             Returns:
             - int, the number of stable discs for the given player.
             """
-            board_size = chess_board.shape[0]
-            stable = np.zeros_like(chess_board)  # A board to mark stable discs
-            
-            # Directions for traversing
-            directions = [(-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1)]
+            # get size of board
+            board_size = board.shape[0]
+            # positions of corners
+            corners = [(0, 0), (0, board_size-1), (board_size-1, 0), (board_size-1, board_size-1)]
+            # stability value
+            stability = 0
 
-            # Check stability starting from corners
-            corners = [(0, 0), (0, board_size - 1), (board_size - 1, 0), (board_size - 1, board_size - 1)]
+            # if player has corner then add 1 to stability value
             for corner in corners:
-                if chess_board[corner[0], corner[1]] == player:
-                    mark_stable_discs(chess_board, stable, corner, player, directions)
-
-            # Count the number of stable discs
-            return np.sum(stable == player)
+                if board[corner] == player:
+                    stability += 1
+            
+            # return stability value
+            return stability
         
-        def get_frontier_discs_by_player(chess_board):
+        def get_frontier_discs_by_player(board):
             """
             Identify frontier discs separately for each player.
 
             Parameters
             ----------
-            chess_board : numpy.ndarray
+            board : numpy.ndarray
                 The current state of the game board.
 
             Returns
@@ -245,7 +213,7 @@ class StudentAgent(Agent):
             # All possible directions for adjacency
             directions = [(-1, 0), (1, 0), (0, -1), (0, 1),  # Up, Down, Left, Right
                         (-1, -1), (-1, 1), (1, -1), (1, 1)]  # Diagonals
-            board_size = chess_board.shape[0]
+            board_size = board.shape[0]
 
             # Sets to store frontier discs for each player
             player_1_frontier = set()
@@ -254,24 +222,32 @@ class StudentAgent(Agent):
             # Iterate through the board
             for r in range(board_size):
                 for c in range(board_size):
-                    if chess_board[r, c] != 0:  # If the square is occupied by a disc
+                    if board[r, c] != 0:  # If the square is occupied by a disc
                         for dr, dc in directions:
                             nr, nc = r + dr, c + dc  # Neighboring row and column
                             if 0 <= nr < board_size and 0 <= nc < board_size:  # Check bounds
-                                if chess_board[nr, nc] == 0:  # If adjacent square is empty
-                                    if chess_board[r, c] == 1:  # Player 1's disc
+                                if board[nr, nc] == 0:  # If adjacent square is empty
+                                    if board[r, c] == 1:  # Player 1's disc
                                         player_1_frontier.add((r, c))
-                                    elif chess_board[r, c] == 2:  # Player 2's disc
+                                    elif board[r, c] == 2:  # Player 2's disc
                                         player_2_frontier.add((r, c))
                                     break  # Stop checking further directions for this disc
 
             return player_1_frontier, player_2_frontier
+        
         #python simulator.py --player_1 second_agent --player_2 student_agent --display
-        def eval_moves(board, value_board, valid_moves, player, opponent):
+        def eval_moves(board, board_size, move_count, valid_moves, player, opponent):
             """
             Evaluate best moves for a player
             """
+            # create copy of board
             board_copy = deepcopy(board)
+
+            # find state of game
+            state = "mid" if move_count > 5 else "early"
+            # get value board
+            value_board = select_board(state, board_size)
+
             # make list for moves
             moves_eval = []
             # iterate through all valid moves
@@ -319,7 +295,13 @@ class StudentAgent(Agent):
             # extract only the moves (sorted by score)
             return [item[0] for item in best_moves]
 
-        
+        def get_max_depth(move_count, total_moves):
+            if move_count < total_moves*0.3:
+                return 5
+            elif move_count < total_moves*0.7:
+                return 10
+            else:
+                return 100
 
         # MCTS Functions: select, expand, simulate, backpropagate
         def select(node):
@@ -333,14 +315,14 @@ class StudentAgent(Agent):
                 node = node.best_child(exploration_param)   
             return node # returns most promising LEAF node
 
-        def expand(node):
+        def expand(node, board_size, move_count):
             """
             Expand the node by adding a new child.
 
             If a node is not fully expanded, create a child for one of its unexplored valid moves.
             """
             valid_moves = get_valid_moves(node.board, player)
-            best_moves = eval_moves(node.board, value_board, valid_moves, player, opponent)
+            best_moves = eval_moves(node.board, board_size, move_count, valid_moves, player, opponent)
             for move in best_moves:
                 # check if this has already been explored
                 if not any(child.move == move for child in node.children):
@@ -353,7 +335,7 @@ class StudentAgent(Agent):
                     return child_node
             return None  # If all moves are already expanded, return none
 
-        def simulate(board, current_player):
+        def simulate(board, board_size, move_count, current_player, max_depth):
             """
             Simulate a random playout from the given board state.
 
@@ -363,14 +345,18 @@ class StudentAgent(Agent):
             sim_player = current_player
             sim_opponent = 3 - sim_player  # alternate between players 1 & 2
 
-            while True:
+            depth = 0
+            total_moves = np.sum(board == 1) + np.sum(board == 2) - 4
+            max_depth = get_max_depth(move_count, total_moves)
+
+            while depth < max_depth:
                 valid_moves = get_valid_moves(sim_board, sim_player)
-                best_moves = eval_moves(sim_board, value_board, valid_moves, player, opponent)
+                best_moves = eval_moves(sim_board, board_size, move_count, valid_moves, player, opponent)
                 if not best_moves:
                     # if no valid moves, swap turns
                     sim_player, sim_opponent = sim_opponent, sim_player
                     valid_moves = get_valid_moves(sim_board, sim_player)
-                    best_moves = eval_moves(sim_board, value_board, valid_moves, player, opponent)
+                    best_moves = eval_moves(sim_board, board_size, move_count, valid_moves, player, opponent)
                     if not best_moves:  # no more moves so game ends
                         break
                 
@@ -378,7 +364,7 @@ class StudentAgent(Agent):
                 move = best_moves[0]
                 execute_move(sim_board, move, sim_player)
                 sim_player, sim_opponent = sim_opponent, sim_player # switch turns
-                
+                depth += 1
                 
             # evaluate the outcome of the game
             _, player_score, opponent_score = check_endgame(sim_board, player, opponent)
@@ -402,21 +388,20 @@ class StudentAgent(Agent):
 
         # keep track of time for turn
         start_time = time.time()
-        time_limit = 1.90  
+        time_limit = 1.98
 
         # get current state of board
-        board_copy = deepcopy(chess_board)
+        board_copy = deepcopy(board)
 
         # get the board size
         board_size = board_copy.shape[0]
-        # get number of player moves (number of Player 1's discs and Player 2's discs subtract 4 [starting discs])
-        move_count = np.sum(chess_board == 1) + np.sum(chess_board == 2) - 4
-        state = "mid" if move_count > 5 else "early"
-        # get value board
-        value_board = select_board(state, board_size)
+        # calculate player's move count
+        move_count = np.sum(board == player) - 2
+
+        max_depth = get_max_depth(move_count, np.sum(board == 1) + np.sum(board == 2) - 4)
 
         # initialize the root node with the current board state
-        root = Node(chess_board)
+        root = Node(board)
 
         # MCTS loop
         while time.time() - start_time < time_limit:
@@ -424,10 +409,10 @@ class StudentAgent(Agent):
             leaf = select(root)
             # Expansion
             if not check_endgame(leaf.board, player, opponent)[0]:
-                child = expand(leaf)
+                child = expand(leaf, board_size, move_count)
                 if child:
                     # Simulation
-                    result = simulate(child.board, player)
+                    result = simulate(child.board, board_size, move_count, player, max_depth)
                     # Backpropagation
                     backpropagate(child, result)
 
