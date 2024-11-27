@@ -399,9 +399,30 @@ class StudentAgent(Agent):
 
         # get the board size
         board_size = board_copy.shape[0]
+
+        
+        # positions of corners and tiles next to corners
+        corners_nexttiles = [
+            [(0, 0), (0, 1), (1, 0), (1, 1)],
+            [(0, board_size-1), (0, board_size-2), (1, board_size-1), (1, board_size-2)],
+            [(board_size-1, 0), (board_size-2, 0), (board_size-1, 1), (board_size-2, 1)],
+            [(board_size-1, board_size-1), (board_size-1, board_size-2), (board_size-2, board_size-1), (board_size-2, board_size-2)]
+            ]
+        
+        # iterate through corners_nexttiles list and update values if player/opponent has that corner
+        for index, corner in enumerate(corners_nexttiles):
+            # if corner is occupied by player
+            if board[corner[0][0]][corner[0][1]] == player:
+                # change values to postive values
+                f"value_board_{board_size}"[corner[1][0]][corner[1][1]] = 5
+                f"value_board_{board_size}"[corner[2][0]][corner[2][1]] = 5
+                f"value_board_{board_size}"[corner[3][0]][corner[3][1]] = 5
+        
+
         # calculate player's move count
         move_count = np.sum(board == player) - 2
 
+        # get max depth
         max_depth = get_max_depth(move_count, np.sum(board == 1) + np.sum(board == 2) - 4)
 
         # initialize the root node with the current board state
