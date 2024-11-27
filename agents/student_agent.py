@@ -207,34 +207,38 @@ class StudentAgent(Agent):
 
             Returns
             -------
-            tuple
-                Two sets: (player_1_frontier, player_2_frontier)
+            frontier discs count for both players
             """
-            # All possible directions for adjacency
-            directions = [(-1, 0), (1, 0), (0, -1), (0, 1),  # Up, Down, Left, Right
-                        (-1, -1), (-1, 1), (1, -1), (1, 1)]  # Diagonals
+            
             board_size = board.shape[0]
+            frontier = np.zeros_like(board, dtype=bool)
+            empty_cells = board == 0
 
-            # Sets to store frontier discs for each player
-            player_1_frontier = set()
-            player_2_frontier = set()
+            # Create a padded version of the board to avoid boundary checks
+            padded_board = np.pad(board, pad_width=1, mode='constant', constant_values=0)
+            occupied_cells = padded_board[1:-1, 1:-1] != 0
 
-            # Iterate through the board
-            for r in range(board_size):
-                for c in range(board_size):
-                    if board[r, c] != 0:  # If the square is occupied by a disc
-                        for dr, dc in directions:
-                            nr, nc = r + dr, c + dc  # Neighboring row and column
-                            if 0 <= nr < board_size and 0 <= nc < board_size:  # Check bounds
-                                if board[nr, nc] == 0:  # If adjacent square is empty
-                                    if board[r, c] == 1:  # Player 1's disc
-                                        player_1_frontier.add((r, c))
-                                    elif board[r, c] == 2:  # Player 2's disc
-                                        player_2_frontier.add((r, c))
-                                    break  # Stop checking further directions for this disc
+            # Check for adjacent empty cells
+            for dr, dc in [(-1, -1), (-1, 0), (-1, 1),
+                           (0, -1),         (0, 1),
+                           (1, -1),  (1, 0),  (1, 1)]:
+                shifted_empty = empty_cells.copy()
+                shifted_empty = np.roll(shifted_empty, shift=(dr, dc), axis=(0, 1))
+                if dr != 0:
+                    shifted_empty[dr > 0 and 0 or -dr:, :] = False
+                if dc != 0:
+                    shifted_empty[:, dc > 0 and 0 or -dc:] = False
+                frontier |= occupied_cells & shifted_empty
 
-            return player_1_frontier, player_2_frontier
-        
+            # Extract player-specific frontier discs
+            player_1_frontier = (frontier) & (board == 1)
+            player_2_frontier = (frontier) & (board == 2)
+
+            # Count the number of frontier discs for each player
+            player_1_frontier_count = np.sum(player_1_frontier)
+            player_2_frontier_count = np.sum(player_2_frontier)
+
+            return player_1_frontier_count, player_2_frontier_count
         #python simulator.py --player_1 second_agent --player_2 student_agent --display
         def eval_moves(board, board_size, move_count, valid_moves, player, opponent):
             """
