@@ -284,7 +284,7 @@ class StudentAgent(Agent):
                 # get number of player's, opp's frontier discs
                 player_frontiers, opp_frontiers = get_frontier_discs_by_player(board_copy)
                 # calculate frontier value
-                frontier = len(player_frontiers) - len(opp_frontiers)
+                frontier = player_frontiers - opp_frontiers
                 # frontier weight
                 frontier_w = 0.7
 
