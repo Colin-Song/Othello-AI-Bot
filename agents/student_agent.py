@@ -1,5 +1,5 @@
-#python simulator.py --player_1 student_agent --player_2 minimax_agent --display
-#python simulator.py --player_1 second_agent --player_2 student_agent --autoplay --autoplay_runs 15
+#python simulator.py --player_1 student_agent --player_2 random_agent --display
+#python simulator.py --player_1 student_agent --player_2 random_agent --autoplay --autoplay_runs 15
 # Student agent: Add your own agent here
 from agents.agent import Agent
 from store import register_agent
@@ -85,7 +85,7 @@ class StudentAgent(Agent):
                 valid_moves = get_valid_moves(self.board, player)
                 return len(valid_moves) == len(self.children)
 
-            def best_child(self, exploration_weight=0):
+            def best_child(self, exploration_weight):
                 """
                 Select the best child node using UCB or raw win rate.
 
@@ -403,8 +403,7 @@ class StudentAgent(Agent):
 
         if algorithm == "minimax":
             # Use Minimax for endgame
-            _, best_move = minimax(board, depth=5, alpha=-float('inf'), beta=float('inf'),
-                                   maximizing_player=True, player=player, opponent=opponent)
+            _, best_move = minimax(board, 5, -float('inf'), float('inf'), True, player, opponent)
         else:
             # Use MCTS for early/midgame
             start_time = time.time()
@@ -425,7 +424,7 @@ class StudentAgent(Agent):
                 ]
             
             # iterate through corners_nexttiles list and update values if player/opponent has that corner
-            for corner in enumerate(corners_nexttiles):
+            for index, corner in enumerate(corners_nexttiles):
                 # if corner is occupied by player
                 if board[corner[0][0]][corner[0][1]] == player:
                     # change values to postive values
