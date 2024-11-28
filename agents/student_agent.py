@@ -1,5 +1,5 @@
 #python simulator.py --player_1 second_agent --player_2 student_agent --display
-#python simulator.py --player_1 second_agent --player_2 student_agent --autoplay_runs 15 --autoplay
+#python simulator.py --player_1 second_agent --player_2 student_agent --autoplay --autoplay_runs 15
 # Student agent: Add your own agent here
 from agents.agent import Agent
 from store import register_agent
@@ -18,40 +18,40 @@ value_boards = {
         [120, -20,  20,  20, -20, 120]
     ]),
     8: np.array([
-        [120, -20,  20,   5,   5,  20, -20, 120],
-        [-20, -40,  -5,  -5,  -5,  -5, -40, -20],
-        [ 20,  -5,  15,   3,   3,  15,  -5,  20],
-        [  5,  -5,   3,   3,   3,   3,  -5,   5],
-        [  5,  -5,   3,   3,   3,   3,  -5,   5],
-        [ 20,  -5,  15,   3,   3,  15,  -5,  20],
-        [-20, -40,  -5,  -5,  -5,  -5, -40, -20],
-        [120, -20,  20,   5,   5,  20, -20, 120]
+        [120, -20,  20,    5,    5,  20, -20, 120],
+        [-20, -40,  -5,   -5,   -5,  -5, -40, -20],
+        [ 20,  -5,  15,    3,    3,  15,  -5,  20],
+        [  5,  -5,   3,   15,   15,   3,  -5,   5],
+        [  5,  -5,   3,   15,   15,   3,  -5,   5],
+        [ 20,  -5,  15,    3,    3,  15,  -5,  20],
+        [-20, -40,  -5,   -5,   -5,  -5, -40, -20],
+        [120, -20,  20,    5,    5,  20, -20, 120]
     ]),
     10: np.array([
-    [120, -20,  20,   5,   5,   5,   5,   20, -20, 120],
-    [-20, -40,  -5,  -5,  -5,  -5,  -5,   -5, -40, -20],
-    [ 20,  -5,  15,   3,   3,   3,   3,   15,  -5,  20],
-    [  5,  -5,   3,   3,   3,   3,   3,    3,  -5,   5],
-    [  5,  -5,   3,   3,   3,   3,   3,    3,  -5,   5],
-    [  5,  -5,   3,   3,   3,   3,   3,    3,  -5,   5],
-    [  5,  -5,   3,   3,   3,   3,   3,    3,  -5,   5],
-    [ 20,  -5,  15,   3,   3,   3,   3,   15,  -5,  20],
-    [-20, -40,  -5,  -5,  -5,  -5,  -5,   -5, -40, -20],
-    [120, -20,  20,   5,   5,   5,   5,   20, -20, 120]
+    [120, -20,  20,   5,     5,    5,    5,   20, -20, 120],
+    [-20, -40,  -5,  -5,    -5,   -5,   -5,   -5, -40, -20],
+    [ 20,  -5,  15,   3,     3,    3,    3,   15,  -5,  20],
+    [  5,  -5,   3,   10,   10,   10,   10,    3,  -5,   5],
+    [  5,  -5,   3,   10,   15,   15,   10,    3,  -5,   5],
+    [  5,  -5,   3,   10,   15,   15,   10,    3,  -5,   5],
+    [  5,  -5,   3,   10,   10,   10,   10,    3,  -5,   5],
+    [ 20,  -5,  15,    3,    3,    3,    3,   15,  -5,  20],
+    [-20, -40,  -5,   -5,   -5,   -5,   -5,   -5, -40, -20],
+    [120, -20,  20,    5,    5,    5,    5,   20, -20, 120]
     ]),
     12: np.array([
-    [120, -20,  20,   5,   5,   5,   5,    5,   5,   20, -20, 120],
-    [-20, -40,  -5,  -5,  -5,  -5,  -5,   -5,  -5,   -5, -40, -20],
-    [ 20,  -5,  15,   3,   3,   3,   3,    3,   3,   15,  -5,  20],
-    [  5,  -5,   3,   3,   3,   3,   3,    3,   3,    3,  -5,   5],
-    [  5,  -5,   3,   3,   3,   3,   3,    3,   3,    3,  -5,   5],
-    [  5,  -5,   3,   3,   3,   3,   3,    3,   3,    3,  -5,   5],
-    [  5,  -5,   3,   3,   3,   3,   3,    3,   3,    3,  -5,   5],
-    [  5,  -5,   3,   3,   3,   3,   3,    3,   3,    3,  -5,   5],
-    [  5,  -5,   3,   3,   3,   3,   3,    3,   3,    3,  -5,   5],
-    [ 20,  -5,  15,   3,   3,   3,   3,    3,   3,   15,  -5,  20],
-    [-20, -40,  -5,  -5,  -5,  -5,  -5,   -5,  -5,   -5, -40, -20],
-    [120, -20,  20,   5,   5,   5,   5,    5,   5,   20, -20, 120]
+    [120, -20,  20,   5,   5,    5,    5,    5,   5,   20, -20, 120],
+    [-20, -40,  -5,  -5,  -5,   -5,   -5,   -5,  -5,   -5, -40, -20],
+    [ 20,  -5,  15,   3,   3,    3,    3,    3,   3,   15,  -5,  20],
+    [  5,  -5,   3,   7,   7,    7,    7,    7,   7,    3,  -5,   5],
+    [  5,  -5,   3,   7,  10,   10,   10,   10,   7,    3,  -5,   5],
+    [  5,  -5,   3,   7,  10,   15,   15,   10,   7,    3,  -5,   5],
+    [  5,  -5,   3,   7,  10,   15,   15,   10,   7,    3,  -5,   5],
+    [  5,  -5,   3,   7,  10,   10,   10,   10,   7,    3,  -5,   5],
+    [  5,  -5,   3,   7,   7,    7,    7,    7,   7,    3,  -5,   5],
+    [ 20,  -5,  15,   3,   3,    3,    3,    3,   3,   15,  -5,  20],
+    [-20, -40,  -5,  -5,  -5,   -5,   -5,   -5,  -5,   -5, -40, -20],
+    [120, -20,  20,   5,   5,    5,    5,    5,   5,   20, -20, 120]
     ])
 }
 
@@ -186,6 +186,7 @@ class StudentAgent(Agent):
             player_2_frontier_count = np.sum(player_2_frontier)
 
             return player_1_frontier_count, player_2_frontier_count
+        
         #python simulator.py --player_1 second_agent --player_2 student_agent --display
         def eval_moves(board, board_size, move_count, valid_moves, player, opponent):
             """
@@ -221,17 +222,22 @@ class StudentAgent(Agent):
                 # calculate stability value
                 stability = player_stable_discs - opp_stable_discs
                 # stability weight
-                stability_w = 1
+                stability_w = 2
 
                 # get number of player's, opp's frontier discs
                 player_frontiers, opp_frontiers = get_frontier_discs_by_player(board_copy)
                 # calculate frontier value
                 frontier = player_frontiers - opp_frontiers
                 # frontier weight
-                frontier_w = 0.7
+                frontier_w = -0.7
+
+                # count how many discs we flip with the move
+                flip_discs = count_capture(board, move, player)
+                # flipped discs weight
+                flip_discs_w = -0.6
 
                 # calculate the board score for the player given the move
-                board_value = value_move*value_move_w + mobility*mobility_w + stability*stability_w + frontier*frontier_w
+                board_value = value_move*value_move_w + mobility*mobility_w + stability*stability_w + frontier*frontier_w + flip_discs*flip_discs_w
                 # append the move and the board score to moves_eval list
                 moves_eval.append((move, board_value))
 
@@ -356,9 +362,9 @@ class StudentAgent(Agent):
             # if corner is occupied by player
             if board[corner[0][0]][corner[0][1]] == player:
                 # change values to postive values
-                value_boards[board_size][corner[1][0]][corner[1][1]] = 5
-                value_boards[board_size][corner[2][0]][corner[2][1]] = 5
-                value_boards[board_size][corner[3][0]][corner[3][1]] = 5
+                value_boards[board_size][corner[1][0]][corner[1][1]] = 20
+                value_boards[board_size][corner[2][0]][corner[2][1]] = 20
+                value_boards[board_size][corner[3][0]][corner[3][1]] = 20
         
 
         # calculate player's move count
