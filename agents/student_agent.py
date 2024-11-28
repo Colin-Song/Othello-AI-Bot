@@ -451,4 +451,5 @@ class StudentAgent(Agent):
                         backpropagate(child, result)
             # Choose the best move after search is done
             best_move = root.best_child(exploration_weight=0).move
-            return best_move
+            
+        return best_move
