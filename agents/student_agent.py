@@ -8,48 +8,26 @@ import numpy as np
 from copy import deepcopy
 import time
 from helpers import random_move, count_capture, execute_move, check_endgame, get_valid_moves
-
-early_value_board_6 = np.array([
-    [120, -20,  20,  20, -20, 120],
-    [-20, -40,  -5,  -5, -40, -20],
-    [ 20,  -5,  15,  15,  -5,  20],
-    [ 20,  -5,  15,  15,  -5,  20],
-    [-20, -40,  -5,  -5, -40, -20],
-    [120, -20,  20,  20, -20, 120]
-])
-#change values in board
-mid_value_board_6 = np.array([
-    [120, -20,  20,  20, -20, 120],
-    [-20, -40,  -5,  -5, -40, -20],
-    [ 20,  -5,  15,  15,  -5,  20],
-    [ 20,  -5,  15,  15,  -5,  20],
-    [-20, -40,  -5,  -5, -40, -20],
-    [120, -20,  20,  20, -20, 120]
-])
-
-early_value_board_8 = np.array([
-    [120, -20,  20,   5,   5,  20, -20, 120],
-    [-20, -40,  -5,  -5,  -5,  -5, -40, -20],
-    [ 20,  -5,  15,   3,   3,  15,  -5,  20],
-    [  5,  -5,   3,   3,   3,   3,  -5,   5],
-    [  5,  -5,   3,   3,   3,   3,  -5,   5],
-    [ 20,  -5,  15,   3,   3,  15,  -5,  20],
-    [-20, -40,  -5,  -5,  -5,  -5, -40, -20],
-    [120, -20,  20,   5,   5,  20, -20, 120]
-])
-#change values in board
-mid_value_board_8 = np.array([
-    [120, -20,  20,   5,   5,  20, -20, 120],
-    [-20, -40,  -5,  -5,  -5,  -5, -40, -20],
-    [ 20,  -5,  15,   3,   3,  15,  -5,  20],
-    [  5,  -5,   3,   3,   3,   3,  -5,   5],
-    [  5,  -5,   3,   3,   3,   3,  -5,   5],
-    [ 20,  -5,  15,   3,   3,  15,  -5,  20],
-    [-20, -40,  -5,  -5,  -5,  -5, -40, -20],
-    [120, -20,  20,   5,   5,  20, -20, 120]
-])
-
-early_value_board_10 = np.array([
+value_boards = {
+    6: np.array([
+        [120, -20,  20,  20, -20, 120],
+        [-20, -40,  -5,  -5, -40, -20],
+        [ 20,  -5,  15,  15,  -5,  20],
+        [ 20,  -5,  15,  15,  -5,  20],
+        [-20, -40,  -5,  -5, -40, -20],
+        [120, -20,  20,  20, -20, 120]
+    ]),
+    8: np.array([
+        [120, -20,  20,   5,   5,  20, -20, 120],
+        [-20, -40,  -5,  -5,  -5,  -5, -40, -20],
+        [ 20,  -5,  15,   3,   3,  15,  -5,  20],
+        [  5,  -5,   3,   3,   3,   3,  -5,   5],
+        [  5,  -5,   3,   3,   3,   3,  -5,   5],
+        [ 20,  -5,  15,   3,   3,  15,  -5,  20],
+        [-20, -40,  -5,  -5,  -5,  -5, -40, -20],
+        [120, -20,  20,   5,   5,  20, -20, 120]
+    ]),
+    10: np.array([
     [120, -20,  20,   5,   5,   5,   5,   20, -20, 120],
     [-20, -40,  -5,  -5,  -5,  -5,  -5,   -5, -40, -20],
     [ 20,  -5,  15,   3,   3,   3,   3,   15,  -5,  20],
@@ -60,22 +38,8 @@ early_value_board_10 = np.array([
     [ 20,  -5,  15,   3,   3,   3,   3,   15,  -5,  20],
     [-20, -40,  -5,  -5,  -5,  -5,  -5,   -5, -40, -20],
     [120, -20,  20,   5,   5,   5,   5,   20, -20, 120]
-])
-#change values in board
-mid_value_board_10 = np.array([
-    [120, -20,  20,   5,   5,   5,   5,   20, -20, 120],
-    [-20, -40,  -5,  -5,  -5,  -5,  -5,   -5, -40, -20],
-    [ 20,  -5,  15,   3,   3,   3,   3,   15,  -5,  20],
-    [  5,  -5,   3,   3,   3,   3,   3,    3,  -5,   5],
-    [  5,  -5,   3,   3,   3,   3,   3,    3,  -5,   5],
-    [  5,  -5,   3,   3,   3,   3,   3,    3,  -5,   5],
-    [  5,  -5,   3,   3,   3,   3,   3,    3,  -5,   5],
-    [ 20,  -5,  15,   3,   3,   3,   3,   15,  -5,  20],
-    [-20, -40,  -5,  -5,  -5,  -5,  -5,   -5, -40, -20],
-    [120, -20,  20,   5,   5,   5,   5,   20, -20, 120]
-])
-
-early_value_board_12 = np.array([
+    ]),
+    12: np.array([
     [120, -20,  20,   5,   5,   5,   5,    5,   5,   20, -20, 120],
     [-20, -40,  -5,  -5,  -5,  -5,  -5,   -5,  -5,   -5, -40, -20],
     [ 20,  -5,  15,   3,   3,   3,   3,    3,   3,   15,  -5,  20],
@@ -88,23 +52,9 @@ early_value_board_12 = np.array([
     [ 20,  -5,  15,   3,   3,   3,   3,    3,   3,   15,  -5,  20],
     [-20, -40,  -5,  -5,  -5,  -5,  -5,   -5,  -5,   -5, -40, -20],
     [120, -20,  20,   5,   5,   5,   5,    5,   5,   20, -20, 120]
-])
-#change values in board
-mid_value_board_12 = np.array([
-    [120, -20,  20,   5,   5,   5,   5,    5,   5,   20, -20, 120],
-    [-20, -40,  -5,  -5,  -5,  -5,  -5,   -5,  -5,   -5, -40, -20],
-    [ 20,  -5,  15,   3,   3,   3,   3,    3,   3,   15,  -5,  20],
-    [  5,  -5,   3,   3,   3,   3,   3,    3,   3,    3,  -5,   5],
-    [  5,  -5,   3,   3,   3,   3,   3,    3,   3,    3,  -5,   5],
-    [  5,  -5,   3,   3,   3,   3,   3,    3,   3,    3,  -5,   5],
-    [  5,  -5,   3,   3,   3,   3,   3,    3,   3,    3,  -5,   5],
-    [  5,  -5,   3,   3,   3,   3,   3,    3,   3,    3,  -5,   5],
-    [  5,  -5,   3,   3,   3,   3,   3,    3,   3,    3,  -5,   5],
-    [ 20,  -5,  15,   3,   3,   3,   3,    3,   3,   15,  -5,  20],
-    [-20, -40,  -5,  -5,  -5,  -5,  -5,   -5,  -5,   -5, -40, -20],
-    [120, -20,  20,   5,   5,   5,   5,    5,   5,   20, -20, 120]
-])
-    
+    ])
+}
+
 
 @register_agent("student_agent")
 class StudentAgent(Agent):
@@ -164,9 +114,6 @@ class StudentAgent(Agent):
                         best_score = score
                         best_child = child
                 return best_child
-        
-        def select_board(state, size):
-            return globals()[f"{state}_value_board_{size}"]
 
 
         def count_stable_discs(board, player):
@@ -247,17 +194,12 @@ class StudentAgent(Agent):
             # create copy of board
             board_copy = deepcopy(board)
 
-            # find state of game
-            state = "mid" if move_count > 5 else "early"
-            # get value board
-            value_board = select_board(state, board_size)
-
             # make list for moves
             moves_eval = []
             # iterate through all valid moves
             for move in valid_moves:
                 # get positional value of move
-                value_move = int(value_board[move])
+                value_move = int(value_boards[board_size][move[0]][move[1]])
                 # value move weight
                 value_move_w = 0.5
 
@@ -414,9 +356,9 @@ class StudentAgent(Agent):
             # if corner is occupied by player
             if board[corner[0][0]][corner[0][1]] == player:
                 # change values to postive values
-                f"value_board_{board_size}"[corner[1][0]][corner[1][1]] = 5
-                f"value_board_{board_size}"[corner[2][0]][corner[2][1]] = 5
-                f"value_board_{board_size}"[corner[3][0]][corner[3][1]] = 5
+                value_boards[board_size][corner[1][0]][corner[1][1]] = 5
+                value_boards[board_size][corner[2][0]][corner[2][1]] = 5
+                value_boards[board_size][corner[3][0]][corner[3][1]] = 5
         
 
         # calculate player's move count
