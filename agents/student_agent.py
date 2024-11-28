@@ -263,6 +263,58 @@ class StudentAgent(Agent):
                 return 10
             else:
                 return 100
+            
+        def minimax(board, depth, alpha, beta, maximizing_player, player, opponent):
+            """
+            Minimax with Alpha-Beta Pruning for endgame.
+
+            Parameters:
+            - board: numpy.ndarray, current board state.
+            - depth: int, remaining depth to explore.
+            - alpha: float, alpha value for pruning.
+            - beta: float, beta value for pruning.
+            - maximizing_player: bool, True if maximizing player's turn.
+            - player: int, current player number.
+            - opponent: int, opponent's player number.
+
+            Returns:
+            - tuple: (best score, best move)
+            """
+            valid_moves = get_valid_moves(board, player if maximizing_player else opponent)
+
+            # Terminal condition: game over or max depth reached
+            if depth == 0 or not valid_moves:
+                player_score = np.sum(board == player)
+                opponent_score = np.sum(board == opponent)
+                return (player_score - opponent_score, None)
+
+            best_move = None
+            if maximizing_player:
+                max_eval = -float('inf')
+                for move in valid_moves:
+                    new_board = deepcopy(board)
+                    execute_move(new_board, move, player)
+                    eval, _ = minimax(new_board, depth - 1, alpha, beta, False, player, opponent)
+                    if eval > max_eval:
+                        max_eval = eval
+                        best_move = move
+                    alpha = max(alpha, eval)
+                    if beta <= alpha:
+                        break  # Beta cut-off
+                return (max_eval, best_move)
+            else:
+                min_eval = float('inf')
+                for move in valid_moves:
+                    new_board = deepcopy(board)
+                    execute_move(new_board, move, opponent)
+                    eval, _ = minimax(new_board, depth - 1, alpha, beta, True, player, opponent)
+                    if eval < min_eval:
+                        min_eval = eval
+                        best_move = move
+                    beta = min(beta, eval)
+                    if beta <= alpha:
+                        break  # Alpha cut-off
+                return (min_eval, best_move)
 
         # MCTS Functions: select, expand, simulate, backpropagate
         def select(node):
