@@ -1,4 +1,4 @@
-#python simulator.py --player_1 student_agent --player_2 random_agent --display
+#python simulator.py --player_1 student_agent --player_2 gpt_greedy_corners_agent --display
 #python simulator.py --player_1 student_agent --player_2 random_agent --autoplay --autoplay_runs 15
 # Student agent: Add your own agent here
 from agents.agent import Agent
@@ -196,6 +196,56 @@ class StudentAgent(Agent):
 
             return player_1_frontier_count, player_2_frontier_count
         
+        def center_eval(board, board_size):
+            center_value = 0
+            center = board_size // 2
+            center_pieces = [
+                [center-1, center-1],
+                [center-1, center],
+                [center, center-1],
+                [center, center]
+            ]
+            for i in range(4):
+                if np.sum(board[center_pieces[i][0]][center_pieces[i][1]] == player):
+                    center_value += 1
+                else:
+                    center_value -= 1
+
+            return center_value
+
+
+        def weights(total_pieces):
+            
+            if total_pieces < 20:
+                # Early game phase
+                value_move_w = 1
+                mobility_w = 0.5
+                stability_w = 0.3
+                frontier_w = 0.1
+                flip_discs_w = 0.7
+                center_w = 1.0
+            elif total_pieces < 50:
+                # Mid game phase
+                value_move_w = 1.0
+                mobility_w = 0.6
+                stability_w = 0.4
+                frontier_w = 0.2
+                flip_discs_w = 0.5
+                center_w = 1.5
+            else:
+                # End game phase
+                value_move_w = 0.25
+                mobility_w = 0.3
+                stability_w = 0.7
+                frontier_w = 0.0
+                flip_discs_w = 0.9
+                center_w = 0.3
+            
+            # Actual evaluation logic using the weights
+            # Calculate evaluation score for each move based on weights
+            
+            return [value_move_w, mobility_w, stability_w, frontier_w, flip_discs_w, center_w]
+        
         #python simulator.py --player_1 second_agent --player_2 student_agent --display
         def eval_moves(board, board_size, move_count, valid_moves, player, opponent):
             """
@@ -204,6 +254,10 @@ class StudentAgent(Agent):
             # create copy of board
             board_copy = deepcopy(board)
 
+            weight_values = weights(np.sum(board_copy == 1) + np.sum(board_copy == 2))
+
+            cur_center_value = center_eval(board_copy, board_size)
+
             # make list for moves
             moves_eval = []
             # iterate through all valid moves
@@ -211,7 +265,7 @@ class StudentAgent(Agent):
                 # get positional value of move
                 value_move = int(value_boards[board_size][move[0]][move[1]])
                 # value move weight
-                value_move_w = 0.5
+                value_move_w = weight_values[0]
 
                 # execute move on board_copy
                 execute_move(board_copy, move, player)
@@ -222,7 +276,7 @@ class StudentAgent(Agent):
                 # calculate mobility value
                 mobility = len(future_player_openmoves) - len(future_opp_openmoves)
                 # mobility weight
-                mobility_w = 0.7
+                mobility_w = weight_values[1]
 
                 # get number of player's stable discs
                 player_stable_discs = count_stable_discs(board_copy, player)
@@ -231,22 +285,26 @@ class StudentAgent(Agent):
                 # calculate stability value
                 stability = player_stable_discs - opp_stable_discs
                 # stability weight
-                stability_w = 2
+                stability_w = weight_values[2]
 
                 # get number of player's, opp's frontier discs
                 player_frontiers, opp_frontiers = get_frontier_discs_by_player(board_copy)
                 # calculate frontier value
                 frontier = player_frontiers - opp_frontiers
                 # frontier weight
-                frontier_w = -0.7
+                frontier_w = -1 * weight_values[3]
 
                 # count how many discs we flip with the move
-                flip_discs = count_capture(board, move, player)
+                flip_discs = count_capture(board_copy, move, player)
                 # flipped discs weight
-                flip_discs_w = -0.6
+                flip_discs_w = -1 * weight_values[4]
+
+                next_center_value = center_eval(board_copy, board_size)
+                center_gain = cur_center_value - next_center_value
+                center_w = weight_values[5]
 
                 # calculate the board score for the player given the move
-                board_value = value_move*value_move_w + mobility*mobility_w + stability*stability_w + frontier*frontier_w + flip_discs*flip_discs_w
+                board_value = value_move*value_move_w + mobility*mobility_w + stability*stability_w + frontier*frontier_w + flip_discs*flip_discs_w + center_gain*center_w
                 # append the move and the board score to moves_eval list
                 moves_eval.append((move, board_value))
 
@@ -451,5 +509,5 @@ class StudentAgent(Agent):
                         backpropagate(child, result)
             # Choose the best move after search is done
             best_move = root.best_child(exploration_weight=0).move
-            
+
         return best_move
