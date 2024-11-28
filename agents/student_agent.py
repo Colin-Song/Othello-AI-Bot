@@ -1,4 +1,4 @@
-#python simulator.py --player_1 second_agent --player_2 student_agent --display
+#python simulator.py --player_1 student_agent --player_2 minimax_agent --display
 #python simulator.py --player_1 second_agent --player_2 student_agent --autoplay --autoplay_runs 15
 # Student agent: Add your own agent here
 from agents.agent import Agent
@@ -28,30 +28,30 @@ value_boards = {
         [120, -20,  20,    5,    5,  20, -20, 120]
     ]),
     10: np.array([
-    [120, -20,  20,   5,     5,    5,    5,   20, -20, 120],
-    [-20, -40,  -5,  -5,    -5,   -5,   -5,   -5, -40, -20],
-    [ 20,  -5,  15,   3,     3,    3,    3,   15,  -5,  20],
-    [  5,  -5,   3,   10,   10,   10,   10,    3,  -5,   5],
-    [  5,  -5,   3,   10,   15,   15,   10,    3,  -5,   5],
-    [  5,  -5,   3,   10,   15,   15,   10,    3,  -5,   5],
-    [  5,  -5,   3,   10,   10,   10,   10,    3,  -5,   5],
-    [ 20,  -5,  15,    3,    3,    3,    3,   15,  -5,  20],
-    [-20, -40,  -5,   -5,   -5,   -5,   -5,   -5, -40, -20],
-    [120, -20,  20,    5,    5,    5,    5,   20, -20, 120]
+        [120, -20,  20,   5,     5,    5,    5,   20, -20, 120],
+        [-20, -40,  -5,  -5,    -5,   -5,   -5,   -5, -40, -20],
+        [ 20,  -5,  15,   3,     3,    3,    3,   15,  -5,  20],
+        [  5,  -5,   3,   10,   10,   10,   10,    3,  -5,   5],
+        [  5,  -5,   3,   10,   15,   15,   10,    3,  -5,   5],
+        [  5,  -5,   3,   10,   15,   15,   10,    3,  -5,   5],
+        [  5,  -5,   3,   10,   10,   10,   10,    3,  -5,   5],
+        [ 20,  -5,  15,    3,    3,    3,    3,   15,  -5,  20],
+        [-20, -40,  -5,   -5,   -5,   -5,   -5,   -5, -40, -20],
+        [120, -20,  20,    5,    5,    5,    5,   20, -20, 120]
     ]),
     12: np.array([
-    [120, -20,  20,   5,   5,    5,    5,    5,   5,   20, -20, 120],
-    [-20, -40,  -5,  -5,  -5,   -5,   -5,   -5,  -5,   -5, -40, -20],
-    [ 20,  -5,  15,   3,   3,    3,    3,    3,   3,   15,  -5,  20],
-    [  5,  -5,   3,   7,   7,    7,    7,    7,   7,    3,  -5,   5],
-    [  5,  -5,   3,   7,  10,   10,   10,   10,   7,    3,  -5,   5],
-    [  5,  -5,   3,   7,  10,   15,   15,   10,   7,    3,  -5,   5],
-    [  5,  -5,   3,   7,  10,   15,   15,   10,   7,    3,  -5,   5],
-    [  5,  -5,   3,   7,  10,   10,   10,   10,   7,    3,  -5,   5],
-    [  5,  -5,   3,   7,   7,    7,    7,    7,   7,    3,  -5,   5],
-    [ 20,  -5,  15,   3,   3,    3,    3,    3,   3,   15,  -5,  20],
-    [-20, -40,  -5,  -5,  -5,   -5,   -5,   -5,  -5,   -5, -40, -20],
-    [120, -20,  20,   5,   5,    5,    5,    5,   5,   20, -20, 120]
+        [120, -20,  20,   5,   5,    5,    5,    5,   5,   20, -20, 120],
+        [-20, -40,  -5,  -5,  -5,   -5,   -5,   -5,  -5,   -5, -40, -20],
+        [ 20,  -5,  15,   3,   3,    3,    3,    3,   3,   15,  -5,  20],
+        [  5,  -5,   3,   7,   7,    7,    7,    7,   7,    3,  -5,   5],
+        [  5,  -5,   3,   7,  10,   10,   10,   10,   7,    3,  -5,   5],
+        [  5,  -5,   3,   7,  10,   15,   15,   10,   7,    3,  -5,   5],
+        [  5,  -5,   3,   7,  10,   15,   15,   10,   7,    3,  -5,   5],
+        [  5,  -5,   3,   7,  10,   10,   10,   10,   7,    3,  -5,   5],
+        [  5,  -5,   3,   7,   7,    7,    7,    7,   7,    3,  -5,   5],
+        [ 20,  -5,  15,   3,   3,    3,    3,    3,   3,   15,  -5,  20],
+        [-20, -40,  -5,  -5,  -5,   -5,   -5,   -5,  -5,   -5, -40, -20],
+        [120, -20,  20,   5,   5,    5,    5,    5,   5,   20, -20, 120]
     ])
 }
 
@@ -114,6 +114,15 @@ class StudentAgent(Agent):
                         best_score = score
                         best_child = child
                 return best_child
+            
+        def select_algorithm(board):
+            """
+            Decide whether to use MCTS or Minimax based on the number of remaining moves.
+            """
+            remaining_moves = np.sum(board == 0)
+            if remaining_moves <= 10:  # Threshold for switching to Minimax
+                return "minimax"
+            return "mcts"
 
 
         def count_stable_discs(board, player):
@@ -338,57 +347,57 @@ class StudentAgent(Agent):
         # MCTS Parameters
         exploration_param = np.sqrt(2)# exploration weight for the UCB formula
 
-        # keep track of time for turn
-        start_time = time.time()
-        time_limit = 1.98
+        algorithm = select_algorithm(board)
 
-        # get current state of board
-        board_copy = deepcopy(board)
+        if algorithm == "minimax":
+            # Use Minimax for endgame
+            _, best_move = minimax(board, depth=5, alpha=-float('inf'), beta=float('inf'),
+                                   maximizing_player=True, player=player, opponent=opponent)
+        else:
+            # Use MCTS for early/midgame
+            start_time = time.time()
+            time_limit = 1.98
+            board_size = board.shape[0]
+            # calculate player's move count
+            move_count = np.sum(board == player) - 2
+            
+            # get the board size
+            board_size = board.shape[0]
 
-        # get the board size
-        board_size = board_copy.shape[0]
+            # positions of corners and tiles next to corners
+            corners_nexttiles = [
+                [(0, 0), (0, 1), (1, 0), (1, 1)],
+                [(0, board_size-1), (0, board_size-2), (1, board_size-1), (1, board_size-2)],
+                [(board_size-1, 0), (board_size-2, 0), (board_size-1, 1), (board_size-2, 1)],
+                [(board_size-1, board_size-1), (board_size-1, board_size-2), (board_size-2, board_size-1), (board_size-2, board_size-2)]
+                ]
+            
+            # iterate through corners_nexttiles list and update values if player/opponent has that corner
+            for corner in enumerate(corners_nexttiles):
+                # if corner is occupied by player
+                if board[corner[0][0]][corner[0][1]] == player:
+                    # change values to postive values
+                    value_boards[board_size][corner[1][0]][corner[1][1]] = 20
+                    value_boards[board_size][corner[2][0]][corner[2][1]] = 20
+                    value_boards[board_size][corner[3][0]][corner[3][1]] = 20
 
-        
-        # positions of corners and tiles next to corners
-        corners_nexttiles = [
-            [(0, 0), (0, 1), (1, 0), (1, 1)],
-            [(0, board_size-1), (0, board_size-2), (1, board_size-1), (1, board_size-2)],
-            [(board_size-1, 0), (board_size-2, 0), (board_size-1, 1), (board_size-2, 1)],
-            [(board_size-1, board_size-1), (board_size-1, board_size-2), (board_size-2, board_size-1), (board_size-2, board_size-2)]
-            ]
-        
-        # iterate through corners_nexttiles list and update values if player/opponent has that corner
-        for index, corner in enumerate(corners_nexttiles):
-            # if corner is occupied by player
-            if board[corner[0][0]][corner[0][1]] == player:
-                # change values to postive values
-                value_boards[board_size][corner[1][0]][corner[1][1]] = 20
-                value_boards[board_size][corner[2][0]][corner[2][1]] = 20
-                value_boards[board_size][corner[3][0]][corner[3][1]] = 20
-        
+            # get max depth
+            max_depth = get_max_depth(move_count, np.sum(board == 1) + np.sum(board == 2) - 4)
+            # initialize the root node with the current board state
+            root = Node(board)
 
-        # calculate player's move count
-        move_count = np.sum(board == player) - 2
-
-        # get max depth
-        max_depth = get_max_depth(move_count, np.sum(board == 1) + np.sum(board == 2) - 4)
-
-        # initialize the root node with the current board state
-        root = Node(board)
-
-        # MCTS loop
-        while time.time() - start_time < time_limit:
-            # Selection
-            leaf = select(root)
-            # Expansion
-            if not check_endgame(leaf.board, player, opponent)[0]:
-                child = expand(leaf, board_size, move_count)
-                if child:
-                    # Simulation
-                    result = simulate(child.board, board_size, move_count, player, max_depth)
-                    # Backpropagation
-                    backpropagate(child, result)
-
-        # Choose the best move after search is done
-        best_move = root.best_child(exploration_weight=0).move
-        return best_move
+            # MCTS loop
+            while time.time() - start_time < time_limit:
+                # Selection
+                leaf = select(root)
+                # Expansion
+                if not check_endgame(leaf.board, player, opponent)[0]:
+                    child = expand(leaf, board_size, move_count)
+                    if child:
+                        # Simulation
+                        result = simulate(child.board, board_size, move_count, player, max_depth)
+                        # Backpropagation
+                        backpropagate(child, result)
+            # Choose the best move after search is done
+            best_move = root.best_child(exploration_weight=0).move
+            return best_move
