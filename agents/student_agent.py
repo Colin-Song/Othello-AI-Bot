@@ -119,9 +119,11 @@ class StudentAgent(Agent):
             """
             Decide whether to use MCTS or Minimax based on the number of remaining moves.
             """
+            # if there are 10 moves or less then use alphabeta pruning
             remaining_moves = np.sum(board == 0)
-            if remaining_moves <= 10:  # Threshold for switching to Minimax
+            if remaining_moves <= 10:
                 return "minimax"
+            # more than 10 moves use monte carlo tree search
             return "mcts"
 
 
