@@ -52,7 +52,7 @@ class Simulator:
         self.valid_board_sizes = [ i for i in range(self.args.board_size_min, self.args.board_size_max+1) if i % 2 == 0 ]
         #print("Valid sizes: ",self.valid_board_sizes)
 
-    def reset(self, swap_players=False, board_size=None):
+    def reset(self, swap_players=True, board_size=None):
         """
         Reset the game
 
@@ -81,7 +81,7 @@ class Simulator:
             autoplay=self.args.autoplay,
         )
 
-    def run(self, swap_players=False, board_size=None):
+    def run(self, swap_players=True, board_size=None):
         self.reset(swap_players=swap_players, board_size=board_size)
         is_end, p0_score, p1_score = self.world.step()
         while not is_end:
@@ -93,64 +93,74 @@ class Simulator:
 
     def autoplay(self):
         """
-        Run multiple simulations of the gameplay and aggregate win %
+        Run multiple simulations of the gameplay and aggregate win %.
+        Display results after each game.
         """
         p1_win_count = 0
         p2_win_count = 0
+        draws = 0
         p1_times = []
         p2_times = []
+
         if self.args.display:
             logger.warning("Since running autoplay mode, display will be disabled")
         self.args.display = False
-        with all_logging_disabled():
-            for i in range(self.args.autoplay_runs):
-                swap_players = i % 2 == 0
-                board_size = self.valid_board_sizes[ np.random.randint(len(self.valid_board_sizes)) ] 
-                p0_score, p1_score, p0_time, p1_time = self.run(
-                    swap_players=swap_players, board_size=board_size
-                )
-                if swap_players:
-                    p0_score, p1_score, p0_time, p1_time = (
-                        p1_score,
-                        p0_score,
-                        p1_time,
-                        p0_time,
-                    )
-                if p0_score > p1_score:
-                    p1_win_count += 1
-                elif p0_score < p1_score:
-                    p2_win_count += 1
-                else:  # Tie
-                    p1_win_count += 0.5
-                    p2_win_count += 0.5
-                p1_times.extend(p0_time)
-                p2_times.extend(p1_time)
 
-        logger.info(
-            f"Player 1, agent {self.args.player_1}, win percentage: {p1_win_count / self.args.autoplay_runs}. Maximum turn time was {np.round(np.max(p1_times),5)} seconds."
-        )
-        logger.info(
-            f"Player 2, agent {self.args.player_2}, win percentage: {p2_win_count / self.args.autoplay_runs}. Maximum turn time was {np.round(np.max(p2_times),5)} seconds."
-        )
-
-        """
-        The code in this comment will be part of the book-keeping that we use to score the end-of-term tournament. FYI. 
-        Uncomment and use it if you find this book-keeping helpful.
-        fname = (
-            "tournament_results/"
-            + self.world.player_1_name
-            + "_vs_"
-            + self.world.player_2_name
-            + "_at_"
-            + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-            + ".csv"
-        )
-        with open(fname, "w") as fo:
-            fo.write(f"P1Name,P2Name,NumRuns,P1WinPercent,P2WinPercent,P1RunTime,P2RunTime\n")
-            fo.write(
-                f"{self.world.player_1_name},{self.world.player_2_name},{self.args.autoplay_runs},{p1_win_count / self.args.autoplay_runs},{p2_win_count / self.args.autoplay_runs},{np.round(np.max(p1_times),5)},{np.round(np.max(p2_times),5)}\n"
+        for i in range(1, self.args.autoplay_runs + 1):
+            swap_players = i % 2 == 0  # Alternate swapping
+            board_size = self.valid_board_sizes[np.random.randint(len(self.valid_board_sizes))]
+            p0_score, p1_score, p0_time, p1_time = self.run(
+                swap_players=swap_players, board_size=board_size
             )
-        """
+
+            # Handle swapped players
+            if swap_players:
+                # Swap roles and align scores
+                current_p1 = self.args.player_2
+                current_p2 = self.args.player_1
+                p0_score, p1_score = p1_score, p0_score
+                p0_time, p1_time = p1_time, p0_time
+            else:
+                current_p1 = self.args.player_1
+                current_p2 = self.args.player_2
+
+            # Determine the winner
+            if p0_score > p1_score:
+                p1_win_count += 1
+                winner = f"Player 1 ({current_p1})"
+            elif p1_score > p0_score:
+                p2_win_count += 1
+                winner = f"Player 2 ({current_p2})"
+            else:
+                draws += 1
+                winner = "Draw"
+
+            # Record times
+            p1_times.extend(p0_time)
+            p2_times.extend(p1_time)
+
+            # Calculate win rates
+            total_games_played = i
+            win_rate_p1 = (p1_win_count / total_games_played) * 100
+            win_rate_p2 = (p2_win_count / total_games_played) * 100
+
+            # Print results
+            print(f"Game {i}/{self.args.autoplay_runs}: Winner: {winner}")
+            print(f"Scores - {current_p1}: {p0_score}, {current_p2}: {p1_score}")
+            print(f"Current Win Rates:")
+            print(f"{self.args.player_1}: {win_rate_p1:.2f}%") # changed from {current_p1} to {self.args.player_1}
+            print(f"{self.args.player_2}: {win_rate_p2:.2f}%") # changed from {current_p2} to {self.args.player_2}
+            print(f"Draws: {draws}")
+            print("-" * 40)
+
+        # Final summary
+        logger.info(
+            f"Player 1, agent {self.args.player_1}, win percentage: {p1_win_count / self.args.autoplay_runs:.2f}. Maximum turn time was {np.round(np.max(p1_times),5)} seconds."
+        )
+        logger.info(
+            f"Player 2, agent {self.args.player_2}, win percentage: {p2_win_count / self.args.autoplay_runs:.2f}. Maximum turn time was {np.round(np.max(p2_times),5)} seconds."
+        )
+
 
 if __name__ == "__main__":
     args = get_args()
