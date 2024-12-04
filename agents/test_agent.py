@@ -167,32 +167,24 @@ class TestAgent(Agent):
             move = None
             n = board.shape[0]
             corners = [[0, 0], [0, n-1], [n-1, 0], [n-1, n-1]] 
-            x_tiles = [(1,1), (1,n-2), (n-2,1), (n-2,n-2)]
-            c_tiles = [(0,1), (1,0), (0,n-2), (1,n-1), (n-1,1), (n-2,0), (n-1,n-2), (n-2,n-1)]
+            x = [(1,1), (1,n-2), (n-2,1), (n-2,n-2)]
+            c = [(0,1), (1,0), (0,n-2), (1,n-1), (n-1,1), (n-2,0), (n-1,n-2), (n-2,n-1)]
             for next_move in valid_moves:
                 if next_move in corners:
                     return next_move, float('inf')  # Corner capture is the best move
                 
-                flag = False
-                if next_move in x_tiles:
-                    for idx, (x, y) in enumerate(x_tiles):
-                        corner = corners[idx]
-                        if next_move == (x, y):
-                            if board[corner[0]][corner[1]] != player:
-                                flag = True
-                if flag:
-                    continue
+                if next_move in x:
+                    print(next_move)
+                    idx = x.index(next_move)
+                    corner = corners[idx]
+                    if board[corner[0]][corner[1]] != player:
+                        continue  # Skip this move
 
-                flag = False
-                if next_move in c_tiles:
-                    for idx, (x, y) in enumerate(c_tiles):
-                        corner_idx = idx // 2  # Each corner has two C-squares
-                        corner = corners[corner_idx]
-                        if next_move == (x, y):
-                            if board[corner[0]][corner[1]] != player:
-                                flag = True
-                if flag:
-                    continue
+                if next_move in c:
+                    idc = c.index(next_move) // 2
+                    corner = corners[idc]
+                    if board[corner[0]][corner[1]] != player:
+                        continue  # Skip this move
 
                 temp_board = board.copy()
                 execute_move(temp_board, next_move, player)
@@ -275,7 +267,7 @@ class TestAgent(Agent):
             opponent_corners = sum(1 for x, y in corners if board[x][y] == opponent)
             return player_corners - opponent_corners
 
-        def x_c_squares(board, player, opponent):
+        def x_c_squares(board, player):
             """
             Apply penalties or bonuses for occupying X and C squares.
             """
@@ -291,7 +283,7 @@ class TestAgent(Agent):
                 corner = corners[idx]
                 if board[x][y] == player:
                     if board[corner[0]][corner[1]] != player:
-                        score -= 10  # Penalty for occupying X-square when corner is not owned
+                        score -= 50  # Penalty for occupying X-square when corner is not owned
                     elif board[corner[0]][corner[1]] == player:
                         score += 1
 
@@ -302,7 +294,7 @@ class TestAgent(Agent):
                 corner = corners[corner_idx]
                 if board[x][y] == player:
                     if board[corner[0]][corner[1]] != player:
-                        score -= 10  # Penalty
+                        score -= 30  # Penalty
                     elif board[corner[0]][corner[1]] == player:
                         score += 1
 
@@ -322,7 +314,7 @@ class TestAgent(Agent):
             return player_control - opponent_control
 
 
-#python simulator.py --player_1 test_agent --player_2 human_agent --display
+#python simulator.py --player_1 test_agent --player_2 random_agent --display
         def board_value(sim_board, player, opponent):
             n = sim_board.shape[0]
             score = 0
@@ -335,7 +327,7 @@ class TestAgent(Agent):
             mobility_diff = mobility(sim_board, player, opponent)
             stability_diff = count_stable_discs(sim_board, player)
             corner_diff = corner_occupancy(sim_board, player, opponent)
-            x_c_square_value = x_c_squares(sim_board, player, opponent)
+            x_c_square_value = x_c_squares(sim_board, player)
             inner_pieces = inner_control(sim_board, player, opponent)
 
             # Determine game phase

@@ -1,4 +1,4 @@
-#python simulator.py --player_1 temp_agent --player_2 random_agent --display
+#python simulator.py --player_1 temp_agent --player_2 gpt_greedy_corners_agent --display
 #python simulator.py --player_1 student_agent --player_2 random_agent --display
 #python simulator.py --player_1 temp_agent --player_2 gpt_greedy_corners_agent --autoplay --autoplay_runs 10
 from agents.agent import Agent
@@ -14,7 +14,7 @@ class TempAgent(Agent):
     def __init__(self):
         super(TempAgent, self).__init__()
         self.name = "TempAgent"
-        self.time_limit = 1.99  # Time limit in seconds
+        self.time_limit = 1.96  # Time limit in seconds
         self.start_time = None  # Will be set at the beginning of step()
 
         # Define the positional weights for different board sizes
