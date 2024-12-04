@@ -63,7 +63,7 @@ class World:
         self.player_names = {PLAYER_1_ID: PLAYER_1_NAME, PLAYER_2_ID: PLAYER_2_NAME}
 
         if board_size is None:
-            self.board_size = np.random.choice([6, 8, 10, 12])
+            self.board_size = np.random.choice([8])
             logger.info(
                 f"No board size specified. Randomly generating size: {self.board_size}x{self.board_size}"
             )

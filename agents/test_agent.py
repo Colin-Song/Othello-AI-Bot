@@ -18,53 +18,6 @@ class TestAgent(Agent):
     
 
     def step(self, chess_board, player, opponent):
-        '''
-        def select(node):
-            # Select child with highest UCB1 value
-            while node.children:
-                node = node.best_child(np.sqrt(2))
-            return node
-
-        def expand(node, board, player):
-            # Expand a child from untried moves
-            if node.untried_moves:
-                move = node.untried_moves.pop()
-                execute_move(board, move, player)
-                child_node = Node(node, move, board, player)
-                node.children.append(child_node)
-                return child_node
-            else:
-                if not node.children:
-                    return node
-                else:
-                    node = node.best_child()
-                    execute_move(board, node.move, player)
-
-        def simulate(board, player):
-            # Simulate a random playout from the given node
-            sim_board = deepcopy(board)
-            cur_player = player
-            cur_opponent = 3 - player
-            move = None
-
-            valid_moves = get_valid_moves(sim_board, cur_player)
-            if valid_moves:
-                move, value = best_move(board, valid_moves)
-                print(move, value)
-                execute_move(sim_board, move, cur_player)
-                cur_player, cur_opponent = cur_opponent, cur_player
-
-            return board_value(sim_board, board, player, opponent)
-        
-        def backpropagate(node, result):
-            # Backpropagate the simulation result up the tree
-            while node is not None:
-                node.visits += 1
-                node.value += result
-                node = node.parent
-        '''
-
-        
 
         class Node:
             def __init__(self, parent, move, board, player):
@@ -199,7 +152,7 @@ class TestAgent(Agent):
                 cur_player, opponent = opponent, cur_player
                 depth += 1
             # Heuristic evaluation
-            return node, board_value(sim_board, board, player, opponent)
+            return node, board_value(sim_board, player, opponent)
         
         def backup(node, reward):
             # Backpropagation
@@ -225,34 +178,178 @@ class TestAgent(Agent):
             
             return move, value
         #python simulator.py --player_1 test_agent --player_2 random_agent --display
-        def board_value(sim_board, cur_board, player, opponent):
-            n = sim_board.shape[0]
-            player_mobility = len(get_valid_moves(sim_board, player))
-            opp_mobility = len(get_valid_moves(sim_board, opponent))
-            mobility = player_mobility - opp_mobility
-            corners = [[0, 0], [0, n-1], [n-1, 0], [n-1, n-1]] 
-            x = [[1, 1], [1, n-2], [n-2, 1], [n-2, n-2]]
-            c = [[0, 1], [0, n-2], [n-1, 1], [n-1, n-2], [1, 0], [n-2, 0], [1, n-1], [n-2, n-1]]
+
+        def disc_count(board, player, opponent):
+            """
+            Calculate the disc difference between the player and the opponent.
+            """
+            return np.sum(board == player) - np.sum(board == opponent)
+        
+        def mobility(board, player, opponent):
+            """
+            Calculate the mobility difference between the player and the opponent.
+            """
+            player_moves = len(get_valid_moves(board, player))
+            opponent_moves = len(get_valid_moves(board, opponent))
+            return player_moves - opponent_moves
+        
+        def count_stable_discs(board, player):
+            """
+            Counts the number of stable discs for a given player on the board.
+            Stable discs are those that cannot be flipped in any future move.
+            """
+            n = board.shape[0]
+            stable = np.zeros((n, n), dtype=bool)
+
+            # Directions: up, down, left, right, and the four diagonals
+            directions = [(-1, 0), (1, 0), (0, -1), (0, 1),
+                        (-1, -1), (-1, 1), (1, -1), (1, 1)]
+
+            # Initialize stability from corners
+            corners = [(0, 0), (0, n - 1), (n - 1, 0), (n - 1, n - 1)]
+            queue = []
+            for corner in corners:
+                if board[corner[0]][corner[1]] == player:
+                    stable[corner[0]][corner[1]] = True
+                    queue.append(corner)
+
+            # Breadth-First Search to propagate stability
+            while queue:
+                i, j = queue.pop(0)
+                for dx, dy in directions:
+                    x, y = i + dx, j + dy
+                    if 0 <= x < n and 0 <= y < n:
+                        if not stable[x][y] and board[x][y] == player:
+                            # Check if the line from (x, y) to the edge in direction (dx, dy) has no empty squares
+                            xi, yi = x, y
+                            stable_line = True
+                            while 0 <= xi < n and 0 <= yi < n:
+                                if board[xi][yi] == 0:
+                                    stable_line = False
+                                    break
+                                xi += dx
+                                yi += dy
+                            if stable_line:
+                                stable[x][y] = True
+                                queue.append((x, y))
+
+            # Count the number of stable discs
+            return np.sum(stable)
+        
+        def corner_occupancy(board, player, opponent):
+            """
+            Calculate the corner occupancy difference between the player and the opponent.
+            """
+            n = board.shape[0]
+            corners = [(0, 0), (0, n -1), (n -1, 0), (n -1, n -1)]
+            player_corners = sum(1 for x, y in corners if board[x][y] == player)
+            opponent_corners = sum(1 for x, y in corners if board[x][y] == opponent)
+            return player_corners - opponent_corners
+        
+        def edge_discs(board, player, opponent):
+            """
+            Calculate the edge discs difference between the player and the opponent.
+            """
+            n = board.shape[0]
+            player_edges = 0
+            opponent_edges = 0
+            for i in range(n):
+                for j in range(n):
+                    if i == 0 or i == n -1 or j == 0 or j == n -1:
+                        if board[i][j] == player:
+                            player_edges += 1
+                        elif board[i][j] == opponent:
+                            opponent_edges += 1
+            return player_edges - opponent_edges
+
+        def x_c_squares(board, player, opponent):
+            """
+            Apply penalties or bonuses for occupying X and C squares.
+            """
+            n = board.shape[0]
+            corners = [(0, 0), (0, n-1), (n-1, 0), (n-1, n-1)]
+            x_squares = [(1,1), (1,n-2), (n-2,1), (n-2,n-2)]
+            c_squares = [(0,1), (1,0), (0,n-2), (1,n-1), (n-1,1), (n-2,0), (n-1,n-2), (n-2,n-1)]
 
             score = 0
-            for i in range(0, 4):
-                if sim_board[corners[i][0]][corners[i][1]] == 3-player:
-                    if sim_board[x[i][0]][x[i][0]] == player and cur_board[x[i][0]][x[i][0]] == player:
-                        return -1
-                    if sim_board[c[i][0]][c[i][0]] == player and cur_board[c[i][0]][c[i][0]] == player:
-                        return -1
-                    if sim_board[c[i+1][0]][c[i+1][0]] == player and cur_board[c[i+1][0]][c[i+1][0]] == player:
-                        return -1
-                elif sim_board[x[i][0]][x[i][0]] == player or sim_board[c[i][0]][c[i][0]] == player or sim_board[c[i+1][0]][c[i+1][0]] == player:
-                    return -1
-                else:
-                    score += 1
 
-            if score != 4:
-                return -1
+            # X-squares
+            for idx, (x, y) in enumerate(x_squares):
+                corner = corners[idx]
+                if board[x][y] == player:
+                    if board[corner[0]][corner[1]] != player:
+                        score -= 10  # Penalty for occupying X-square when corner is not owned
+                elif board[x][y] == opponent:
+                    if board[corner[0]][corner[1]] != opponent:
+                        score += 1  # Penalize opponent
 
-            return 1
+            # C-squares
+            for idx, (x, y) in enumerate(c_squares):
+                corner_idx = idx // 2  # Each corner has two C-squares
+                corner = corners[corner_idx]
+                if board[x][y] == player:
+                    if board[corner[0]][corner[1]] != player:
+                        score -= 10  # Penalty
+                elif board[x][y] == opponent:
+                    if board[corner[0]][corner[1]] != opponent:
+                        score += 1
+
+            return score
+
         
+        def inner_control(board, player, opponent):
+            """
+            Evaluate control over the inner middle pieces.
+            """
+            n = board.shape[0]
+            # Define inner middle region
+            inner_start = n // 4
+            inner_end = n - inner_start
+            player_control = np.sum(board[inner_start:inner_end, inner_start:inner_end] == player)
+            opponent_control = np.sum(board[inner_start:inner_end, inner_start:inner_end] == opponent)
+            return player_control - opponent_control
+
+
+
+
+
+#python simulator.py --player_1 test_agent --player_2 random_agent --display
+        def board_value(sim_board, player, opponent):
+            n = sim_board.shape[0]
+            disc_diff = disc_count(sim_board, player, opponent)
+            mobility_diff = mobility(sim_board, player, opponent)
+            stability_diff = count_stable_discs(sim_board, player) - count_stable_discs(sim_board, opponent)
+            corner_diff = corner_occupancy(sim_board, player, opponent)
+            x_c_square_value = x_c_squares(sim_board, player, opponent)
+            inner_pieces = inner_control(sim_board, player, opponent)
+            
+            if np.sum(board == 1) + np.sum(board == 2) < n*n*0.2:
+                disc_diff_w = 0
+                mobility_diff_w = 100
+                stability_diff_w = 0
+                corner_diff_w = 0
+                x_c_square_value_w = 80
+                inner_pieces_w = 30
+            elif np.sum(board == 1) + np.sum(board == 2) < n*n*0.65:
+                disc_diff_w = 0
+                mobility_diff_w = 30
+                stability_diff_w = 70
+                corner_diff_w = 70
+                x_c_square_value_w = 80
+                inner_pieces_w = 10
+            else:
+                disc_diff_w = 50
+                mobility_diff_w = 0
+                stability_diff_w = 30
+                corner_diff_w = 100
+                x_c_square_value_w = 10
+                inner_pieces_w = 0
+
+            score = disc_diff*disc_diff_w + mobility_diff*mobility_diff_w + stability_diff*stability_diff_w + corner_diff*corner_diff_w + x_c_square_value*x_c_square_value_w +inner_pieces*inner_pieces_w
+            
+            return score/abs(score)
+
+            
         def update_value_board(node, board, player):
             n = board.shape[0]
             corners = [[0, 0], [0, n-1], [n-1, 0], [n-1, n-1]] 
@@ -291,16 +388,6 @@ class TestAgent(Agent):
             node = root_node
             # MCTS main loop
             while time.time() - self.start_time < self.time_limit:
-                
-                # Selection
-                #select_node = select(node)
-                # Expansion
-                #expand_node = expand(select_node, board, player)
-                # Simulation
-                #result = simulate(board, player)
-                # Backpropagation
-                #backpropagate(expand_node, result)
-
                 expand_node = tree_policy(node, board, player)
                 sim_node, reward = default_policy(expand_node, expand_node.board, player, opponent)
                 backup(sim_node, reward)
