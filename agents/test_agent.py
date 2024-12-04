@@ -167,14 +167,43 @@ class TestAgent(Agent):
             move = None
             n = board.shape[0]
             corners = [[0, 0], [0, n-1], [n-1, 0], [n-1, n-1]] 
+            x_tiles = [(1,1), (1,n-2), (n-2,1), (n-2,n-2)]
+            c_tiles = [(0,1), (1,0), (0,n-2), (1,n-1), (n-1,1), (n-2,0), (n-1,n-2), (n-2,n-1)]
             for next_move in valid_moves:
+                if next_move in corners:
+                    return next_move, float('inf')  # Corner capture is the best move
+                
+                flag = False
+                if next_move in x_tiles:
+                    for idx, (x, y) in enumerate(x_tiles):
+                        corner = corners[idx]
+                        if next_move == (x, y):
+                            if board[corner[0]][corner[1]] != player:
+                                flag = True
+                if flag:
+                    continue
+
+                flag = False
+                if next_move in c_tiles:
+                    for idx, (x, y) in enumerate(c_tiles):
+                        corner_idx = idx // 2  # Each corner has two C-squares
+                        corner = corners[corner_idx]
+                        if next_move == (x, y):
+                            if board[corner[0]][corner[1]] != player:
+                                flag = True
+                if flag:
+                    continue
+
                 temp_board = board.copy()
+                execute_move(temp_board, next_move, player)
+                # Check if this move gives away a corner to the opponent
+                if any(move in get_valid_moves(temp_board, 3 - player) for move in corners):
+                    continue  # Skip this move
+
                 # check if this is a C tile and then check if adjacent corner is ours, if so then change value
                 if node.value_boards[board.shape[0]][next_move[0]][next_move[1]] > value:
-                    execute_move(temp_board, next_move, player)
-                    if not any(move in corners for move in get_valid_moves(temp_board, 3-player)):
-                        move = next_move
-                        value = node.value_boards[board.shape[0]][next_move[0]][next_move[1]] 
+                    move = next_move
+                    value = node.value_boards[board.shape[0]][next_move[0]][next_move[1]] 
             
             return move, value
         #python simulator.py --player_1 test_agent --player_2 random_agent --display
@@ -245,22 +274,6 @@ class TestAgent(Agent):
             player_corners = sum(1 for x, y in corners if board[x][y] == player)
             opponent_corners = sum(1 for x, y in corners if board[x][y] == opponent)
             return player_corners - opponent_corners
-        
-        def edge_discs(board, player, opponent):
-            """
-            Calculate the edge discs difference between the player and the opponent.
-            """
-            n = board.shape[0]
-            player_edges = 0
-            opponent_edges = 0
-            for i in range(n):
-                for j in range(n):
-                    if i == 0 or i == n -1 or j == 0 or j == n -1:
-                        if board[i][j] == player:
-                            player_edges += 1
-                        elif board[i][j] == opponent:
-                            opponent_edges += 1
-            return player_edges - opponent_edges
 
         def x_c_squares(board, player, opponent):
             """
@@ -279,9 +292,9 @@ class TestAgent(Agent):
                 if board[x][y] == player:
                     if board[corner[0]][corner[1]] != player:
                         score -= 10  # Penalty for occupying X-square when corner is not owned
-                elif board[x][y] == opponent:
-                    if board[corner[0]][corner[1]] != opponent:
-                        score += 1  # Penalize opponent
+                    elif board[corner[0]][corner[1]] == player:
+                        score += 1
+
 
             # C-squares
             for idx, (x, y) in enumerate(c_squares):
@@ -290,8 +303,7 @@ class TestAgent(Agent):
                 if board[x][y] == player:
                     if board[corner[0]][corner[1]] != player:
                         score -= 10  # Penalty
-                elif board[x][y] == opponent:
-                    if board[corner[0]][corner[1]] != opponent:
+                    elif board[corner[0]][corner[1]] == player:
                         score += 1
 
             return score
@@ -310,44 +322,62 @@ class TestAgent(Agent):
             return player_control - opponent_control
 
 
-
-
-
-#python simulator.py --player_1 test_agent --player_2 random_agent --display
+#python simulator.py --player_1 test_agent --player_2 human_agent --display
         def board_value(sim_board, player, opponent):
             n = sim_board.shape[0]
+            score = 0
+            corners = [(0, 0), (0, n-1), (n-1, 0), (n-1, n-1)]
+            if any(move in get_valid_moves(sim_board, opponent) for move in corners):
+                score -= 500  # Significant penalty
+
+            # Calculate evaluation factors
             disc_diff = disc_count(sim_board, player, opponent)
             mobility_diff = mobility(sim_board, player, opponent)
-            stability_diff = count_stable_discs(sim_board, player) - count_stable_discs(sim_board, opponent)
+            stability_diff = count_stable_discs(sim_board, player)
             corner_diff = corner_occupancy(sim_board, player, opponent)
             x_c_square_value = x_c_squares(sim_board, player, opponent)
             inner_pieces = inner_control(sim_board, player, opponent)
-            
-            if np.sum(board == 1) + np.sum(board == 2) < n*n*0.2:
+
+            # Determine game phase
+            total_discs = np.sum(sim_board == 1) + np.sum(sim_board == 2)
+            total_squares = n * n
+            occupancy = total_discs / total_squares
+
+            if occupancy < 0.2:
+                # Early Game
                 disc_diff_w = 0
-                mobility_diff_w = 100
+                mobility_diff_w = 70
                 stability_diff_w = 0
                 corner_diff_w = 0
-                x_c_square_value_w = 80
-                inner_pieces_w = 30
-            elif np.sum(board == 1) + np.sum(board == 2) < n*n*0.65:
+                x_c_square_value_w = 100
+                inner_pieces_w = 60
+            elif occupancy < 0.65:
+                # Mid Game
                 disc_diff_w = 0
                 mobility_diff_w = 30
                 stability_diff_w = 70
                 corner_diff_w = 70
-                x_c_square_value_w = 80
-                inner_pieces_w = 10
+                x_c_square_value_w = 50
+                inner_pieces_w = 30
             else:
-                disc_diff_w = 50
+                # Late Game
+                disc_diff_w = 80
                 mobility_diff_w = 0
                 stability_diff_w = 30
                 corner_diff_w = 100
-                x_c_square_value_w = 10
+                x_c_square_value_w = 0
                 inner_pieces_w = 0
 
-            score = disc_diff*disc_diff_w + mobility_diff*mobility_diff_w + stability_diff*stability_diff_w + corner_diff*corner_diff_w + x_c_square_value*x_c_square_value_w +inner_pieces*inner_pieces_w
-            
-            return score/abs(score)
+            # Calculate the score
+            score = (disc_diff * disc_diff_w +
+                    mobility_diff * mobility_diff_w +
+                    stability_diff * stability_diff_w +
+                    corner_diff * corner_diff_w +
+                    x_c_square_value * x_c_square_value_w +
+                    inner_pieces * inner_pieces_w)
+
+            # Return the score directly
+            return score
 
             
         def update_value_board(node, board, player):
