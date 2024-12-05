@@ -1,4 +1,4 @@
-#python simulator.py --player_1 test_agent --player_2 random_agent --display
+#python simulator.py --player_1 temp_agent --player_2 random_agent --display
 #python simulator.py --player_1 test_agent --player_2 random_agent --autoplay --autoplay_runs 10
 from agents.agent import Agent
 from store import register_agent

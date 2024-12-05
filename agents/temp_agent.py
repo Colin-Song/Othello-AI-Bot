@@ -1,6 +1,3 @@
-#python simulator.py --player_1 temp_agent --player_2 gpt_greedy_corners_agent --display
-#python simulator.py --player_1 student_agent --player_2 random_agent --display
-#python simulator.py --player_1 temp_agent --player_2 gpt_greedy_corners_agent --autoplay --autoplay_runs 10
 from agents.agent import Agent
 from store import register_agent
 import sys
@@ -14,10 +11,12 @@ class TempAgent(Agent):
     def __init__(self):
         super(TempAgent, self).__init__()
         self.name = "TempAgent"
-        self.time_limit = 1.96  # Time limit in seconds
-        self.start_time = None  # Will be set at the beginning of step()
+        # time limit
+        self.time_limit = 1.96 
+        # starting time
+        self.start_time = None
 
-        # Define the positional weights for different board sizes
+        # tile values on the board for different sizes
         self.value_boards = {
             6: np.array([
                 [120, -20,  20,  20, -20, 120],
@@ -65,237 +64,337 @@ class TempAgent(Agent):
             ])
         }
 
-    def get_position_weights(self, n):
-        # Use the predefined positional weights from value_boards
-        return self.value_boards.get(n)
-
     def step(self, chess_board, player, opponent):
+        # set current start time
         self.start_time = time.time()
+        # node class to save info for gamestates
         class Node:
             def __init__(self, parent=None, move=None):
+                # parent (previous gamestate)
                 self.parent = parent
+                # children (valid moves in current gamestate)
                 self.children = []
-                self.visit_count = 0
+                # number of times the gamestate has been visited
+                self.visits = 0
+                # the value of the gamestate
                 self.value = 0.0
+                # the move that led to the gamestate
                 self.move = move
-                self.untried_moves = None  # Will be set when needed
+                # the valid moves that have not been tried
+                self.valid_moves_left = None
 
+            # function to check if there are any valid moves that have not been tried in the gamestate
             def is_fully_expanded(self):
-                return self.untried_moves is not None and len(self.untried_moves) == 0
+                return self.valid_moves_left is not None and len(self.valid_moves_left) == 0
 
+            # function to find the best child using the UCT
             def best_child(self, c_param=1.4):
-                choices_weights = [
-                    (child.value / child.visit_count) + c_param * np.sqrt(
-                        (2 * np.log(self.visit_count) / child.visit_count))
-                    for child in self.children
-                ]
+                choices_weights = [(child.value / child.visits) + c_param * np.sqrt((2 * np.log(self.visits) / child.visits)) for child in self.children]
                 return self.children[np.argmax(choices_weights)]
 
-        def tree_policy(node, state, current_player, opponent):
-            # Selection and Expansion
-            while True:
-                if time.time() - self.start_time > self.time_limit:
-                    # Return the current node and state to prevent errors
-                    return node, state, current_player, opponent
-                if node.untried_moves is None:
-                    node.untried_moves = get_valid_moves(state, current_player)
-                if node.untried_moves:
-                    # Expand
-                    move = node.untried_moves.pop()
-                    execute_move(state, move, current_player)
+        # functions for MCTS
+        # function for tree policy in MCTS (selection/expansion phase in MCTS)
+        def tree_policy(node, board, cur_player, cur_opp):
+            # while loop keeps running as long as we are within the time limit
+            while (time.time() - self.start_time <= self.time_limit):
+                # if the gamestate has no valid moves that we haven't tried
+                if (node.valid_moves_left is None):
+                    # set it to valid moves for the gamestate
+                    node.valid_moves_left = get_valid_moves(board, cur_player)
+                
+                # if there is a move in valid_moves_left
+                if node.valid_moves_left:
+                    # then get a move from the list 
+                    move = node.valid_moves_left.pop()
+                    # execute the move
+                    execute_move(board, move, cur_player)
+                    # create a new node for the gamestate where we set the parent to the current node and the move to the move that led to the gamestate
                     child_node = Node(parent=node, move=move)
+                    # append the child to the node
                     node.children.append(child_node)
-                    return child_node, state, current_player, opponent
+                    # return the child, board after executing the move, current player, and current opponent
+                    return child_node, board, cur_player, cur_opp
+                # if there is no move in valid_moves_left
                 else:
+                    # if the node also has no children
                     if not node.children:
-                        # No children to select from, return the node
-                        return node, state, current_player, opponent
+                        # return the node, board, current player, and current opponent
+                        return node, board, cur_player, cur_opp
+                    # if the node has children
                     else:
-                        # Select
+                        # select the best child using UCT
                         node = node.best_child()
-                        execute_move(state, node.move, current_player)
-                    # Switch players
-                    current_player, opponent = opponent, current_player
+                        # execute the move that leads to the best child
+                        execute_move(board, node.move, current_player)
+                    # swap player and opponent
+                    cur_player, cur_opp = cur_opp, cur_player
 
-        def default_policy(state, current_player, opponent):
-            # Rollout with depth limit
+            # return the node, board, current player, and current opponent
+            return node, board, cur_player, cur_opp
+
+        # function for default policy in MCTS (simulation phase in MCTS)
+        def default_policy(board, cur_player, cur_opp):
+            player = cur_player
+            # set max depth limit
             max_depth = 10
+            # current depth is 0
             depth = 0
-            while depth < max_depth:
-                if time.time() - self.start_time > self.time_limit:
-                    break  # Exit if time limit is reached
-                valid_moves = get_valid_moves(state, current_player)
-                if valid_moves:
-                    # Use heuristic-based move selection
-                    move = self.select_move_with_heuristic(state, valid_moves, current_player)
-                    execute_move(state, move, current_player)
-                else:
-                    # Pass turn if no valid moves
-                    current_player, opponent = opponent, current_player
-                    valid_moves = get_valid_moves(state, current_player)
-                    if not valid_moves:
-                        # Game over
-                        break
-                current_player, opponent = opponent, current_player
-                depth += 1
-            # Heuristic evaluation
-            value = self.evaluate_state(state, player, opponent)
-            return value
+            
+            # while loop keeps running while depth is less than the depth limit
+            while (depth < max_depth):
+                # if we're past the time limit
+                if (time.time() - self.start_time >= self.time_limit):
+                    # then break out of the while loop
+                    break
 
-        def backup(node, reward):
-            # Backpropagation
-            while node is not None:
-                node.visit_count += 1
-                node.value += reward
-                node = node.parent
+                # get the valid moves for the player given the gamestate
+                valid_moves = get_valid_moves(board, cur_player)
+                # if there are valid moves available for the player
+                if valid_moves:
+                    # using heuristics, select the best valid move
+                    move = select_move_using_heuristics(board, valid_moves)
+                    # execute the move
+                    execute_move(board, move, cur_player)
+                # if there are no valid moves for the player
+                else:
+                    # swap players
+                    cur_player, cur_opp = cur_opp, cur_player
+                    # get the valid moves for the opponent
+                    valid_moves = get_valid_moves(board, cur_player)
+                    # if the opponent also has no valid moves
+                    if not valid_moves:
+                        # break out of the while loop
+                        break
+
+                # swap players
+                cur_player, cur_opp = cur_opp, cur_player
+                # increase depth by 1
+                depth += 1
+
+            # return the evaluation of the gamestate for the board
+            return evaluate_gamestate(board, player, cur_opp)
         
+         # function to select the best move from valid_moves using heuristics
+        def select_move_using_heuristics(self, state, valid_moves):
+            # initialize the best value to be -infinity
+            best_score = -float('inf')
+            # initialize the best move to be none
+            best_move = None
+
+            # iterate through valid_moves list
+            for move in valid_moves:
+                # get the score of the move from value_boards
+                score = self.value_boards[state.shape[0]][move[0], move[1]]
+                # if the score of the move is better than the current best score
+                if (score > best_score):
+                    # set the best score to score
+                    best_score = score
+                    # set the best move to move
+                    best_move = move
+            
+            # return the best move
+            return best_move
+        
+        # function to evaluate the gamestate
+        def evaluate_gamestate(self, board, player, opp):
+            # calculate the player's value of tiles placed based on value_boards
+            player_score = np.sum(self.value_boards[board.shape[0]][board == player])
+            # calculate the opponents's value of tiles placed based on value_boards
+            opp_score = np.sum(self.value_boards[board.shape[0]][board == opp])
+            # return the player's score - opponent's score
+            return player_score - opp_score
+
+        # function for the backpropagation phase
+        def backpropagation(node, value):
+            # while loop keeps running if the node exists
+            while node is not None:
+                # increase the node's visits by 1
+                node.visits += 1
+                # increase the node's value by the value
+                node.value += value
+                # set node to its parent to backpropagate the value
+                node = node.parent
+
+            
+        # functions for Minimax
+        # function to find the max value for player
+        def max_value(self, board, depth, alpha, beta, player, opp):
+            # if the depth is 0 or we reached the end of the game or we exceed the time limit
+            if (depth == 0) or (check_endgame(board, player, opp)[0]) or (time.time() - self.start_time >= self.time_limit):
+                # return the evaluation of the board given the player and opponent
+                return evaluate(board, player, opp)
+
+            # set max score to -infinity
+            max_score = -float('inf')
+            # get the valid moves for the player for board
+            valid_moves = get_valid_moves(board, player)
+
+            # iterate through moves in valid moves list
+            for move in valid_moves:
+                # make a copy of the board
+                new_board = deepcopy(board)
+                # execute the move on the board copy for the player
+                execute_move(new_board, move, player)
+                # call min_value function given the new board and depth - 1
+                score = min_value(new_board, depth - 1, alpha, beta, player, opp)
+                # get the max score between current max score and the score returned
+                max_score = max(max_score, score)
+                # if the max score is greater than or equal to beta (prune)
+                if (max_score >= beta):
+                    # then return max score
+                    return max_score 
+                # set alpha to be the max between current alpha and max score
+                alpha = max(alpha, max_score)
+            
+            # return the max score
+            return max_score
+
+        # function to find the min value for opponent
+        def min_value(self, board, depth, alpha, beta, player, opp):
+            # if the depth is 0 or we reached the end of the game or we exceed the time limit
+            if (depth == 0) or (check_endgame(board, player, opp)[0]) or (time.time() - self.start_time >= self.time_limit):
+                # return the evaluation of the board given the player and opponent
+                return evaluate(board, player, opp)
+
+            # set min score to infinity
+            min_score = float('inf')
+            # get the valid moves for the opponent for board
+            valid_moves = get_valid_moves(board, opp)
+
+            # iterate thorugh moves in valid moves list
+            for move in valid_moves:
+                # make a copy of the board
+                new_board = deepcopy(board)
+                # execute the moves on the board copy for the opponent
+                execute_move(new_board, move, opp)
+                # call max_value function given the new board and depth - 1
+                score = max_value(new_board, depth - 1, alpha, beta, player, opp)
+
+                # get the min score between current min score and the score returned
+                min_score = min(min_score, score)
+                # if the min score is less than or equal to alpha (prune)
+                if min_score <= alpha:
+                    # then return min score 
+                    return min_score  
+                # set beta to be the min between current beta and the min score
+                beta = min(beta, min_score)
+            
+            # return the min score
+            return min_score
+
+        # function to evaluate the gamestate given a board
+        def evaluate(board, player, opp):
+            # count number of player owned tiles on board
+            player_score = np.sum(board == player)
+            # count number of opponent owned tiles on board
+            opp_score = np.sum(board == opp)
+            # return player number of tiles - opponent number of tiles
+            return player_score - opp_score
+    
+        
+        # function for selecting which algorithm (MCTS or Minimax) to use
         def select_algo(board):
-            """
-            Decide whether to use MCTS or Minimax based on the number of remaining moves.
-            """
-            # if there are 10 moves or less then use alphabeta pruning
+            # find remaining open tiles left on board
             remaining_moves = np.sum(board == 0)
+            # if there are 15 tiles left
             if remaining_moves <= 15:
+                # then use Minimax
                 return "minimax"
-            # more than 10 moves use monte carlo tree search
+            # use MCTS when there are more than 15 tiles lef ton board
             return "mcts"
 
+        # set the root node (current gamestate)
         root_node = Node()
-        state = chess_board.copy()
-        valid_moves = get_valid_moves(state, player)
+        # get the valid moves for the player for the board
+        valid_moves = get_valid_moves(chess_board, player)
+        # set best move to None
+        best_move = None
+        # if there are no valid moves
         if not valid_moves:
-            return None  # No valid moves, pass the turn
-
-        algo = select_algo(state)
-
-        if algo == 'mcts':
-
-            while time.time() - self.start_time < self.time_limit:
-                # Copy the state for this simulation
-                sim_state = state.copy()
-                node = root_node
-                current_player = player
-                sim_opponent = opponent
-
-                # Selection and Expansion
-                if time.time() - self.start_time > self.time_limit:
-                    break  # Exit the loop if time limit is reached
-                node, sim_state, current_player, sim_opponent = tree_policy(
-                    node, sim_state, current_player, sim_opponent)
-
-                # Simulation
-                if time.time() - self.start_time > self.time_limit:
-                    break  # Exit the loop if time limit is reached
-                reward = default_policy(sim_state, current_player, sim_opponent)
-
-                # Backpropagation
-                backup(node, reward)
-
-            # Choose the move with the highest visit count
-            if root_node.children:
-                best_move = max(root_node.children, key=lambda c: c.visit_count).move
-            else:
-                # If no moves were simulated, fall back to a random valid move
-                best_move = random_move(chess_board, player)
-
-            time_taken = time.time() - self.start_time
-            print("My AI's turn took ", time_taken, "seconds.")
-
+            # then return None
             return best_move
+        
+        # select the algo to use
+        algo = select_algo(chess_board)
+        
+        # if the algo is MCTS
+        if algo == 'mcts':
+            # while loop runs as long as we're within time limit
+            while (time.time() - self.start_time <= self.time_limit):
+                # make a copy of the current board
+                sim_board = chess_board.copy()
+                # set node to the root node
+                node = root_node
+                # set current player to player
+                cur_player = player
+                # set current opponent to opponent
+                cur_opp = opponent
 
+                # if we go past the time limit
+                if (time.time() - self.start_time >= self.time_limit):
+                    # break out of while loop
+                    break  
+                # apply tree policy to get node, board after simulation, current player, and current opponent
+                node, sim_board, cur_player, cur_opp = tree_policy(node, sim_board, cur_player, cur_opp)
+
+                # if we got past the time limit
+                if (time.time() - self.start_time >= self.time_limit):
+                    # break out of while loop
+                    break
+                # get the value of the board from simulation by applying default policy
+                value = default_policy(sim_board, cur_player, cur_opp)
+
+                # backpropagate the value to node and its parents
+                backpropagation(node, value)
+
+            # if the root node has children
+            if root_node.children:
+                # then choose the node with the highest number of visits
+                best_move = max(root_node.children, key=lambda c: c.visits).move
+            # if the root node has no children
+            else:
+                # then choose a random move
+                best_move = random_move(chess_board, player)
+            
+            # return the best move
+            return best_move
+        # if the algo is Minimax
         else:
-            self.simulation_count = 0
-            best_move = None
+            # set best score to -infinity
             best_score = -float('inf')
+            # set alpha to -infinity
             alpha = -float('inf')
+            # set beta to infinity
             beta = float('inf')
+            # set depth to 1
             depth = 1
 
-            while time.time() - self.start_time < self.time_limit:
+            # while loop keeps running as long as we're within time limit
+            while (time.time() - self.start_time <= self.time_limit):
+                # iterate through moves in valid moves
                 for move in valid_moves:
+                    # create deepcopy of board
                     new_board = deepcopy(chess_board)
+                    # execute the move on the board copy
                     execute_move(new_board, move, player)
-                    score = self.min_value(new_board, depth - 1, alpha, beta, player, opponent)
+                    # get the score by calling min value
+                    score = min_value(new_board, depth - 1, alpha, beta, player, opponent)
 
+                    # if the score is greater than best score
                     if score > best_score:
+                        # set best score to score
                         best_score = score
+                        # set best move to move
                         best_move = move
 
+                    # set alpha to be max between current alpha and best score
                     alpha = max(alpha, best_score)
 
-                depth += 1  # Increment depth for iterative deepening
-            print(f"Simulations performed: {self.simulation_count}")
+                # increase depth by 1
+                depth += 1 
+            
+            # return best move
             return best_move
         
 
-    def max_value(self, board, depth, alpha, beta, player, opponent):
-        """
-        Maximize the score for the current player.
-        """
-        if depth == 0 or check_endgame(board, player, opponent)[0] or time.time() - self.start_time >= self.time_limit:
-            return self.evaluate(board, player, opponent)
-
-        max_score = -float('inf')
-        valid_moves = get_valid_moves(board, player)
-
-        for move in valid_moves:
-            self.simulation_count += 1  # Increment the simulation counter
-            new_board = deepcopy(board)
-            execute_move(new_board, move, player)
-            score = self.min_value(new_board, depth - 1, alpha, beta, player, opponent)
-
-            max_score = max(max_score, score)
-            if max_score >= beta:
-                return max_score  # Beta cut-off
-            alpha = max(alpha, max_score)
-
-        return max_score
-
-    def min_value(self, board, depth, alpha, beta, player, opponent):
-        """
-        Minimize the score for the opponent.
-        """
-        if depth == 0 or check_endgame(board, player, opponent)[0] or time.time() - self.start_time >= self.time_limit:
-            return self.evaluate(board, player, opponent)
-
-        min_score = float('inf')
-        valid_moves = get_valid_moves(board, opponent)
-
-        for move in valid_moves:
-            self.simulation_count += 1  # Increment the simulation counter
-            new_board = deepcopy(board)
-            execute_move(new_board, move, opponent)
-            score = self.max_value(new_board, depth - 1, alpha, beta, player, opponent)
-
-            min_score = min(min_score, score)
-            if min_score <= alpha:
-                return min_score  # Alpha cut-off
-            beta = min(beta, min_score)
-
-        return min_score
-
-    def evaluate(self, board, player, opponent):
-        """
-        Evaluate the board state based on the disc count difference.
-        """
-        player_score = np.sum(board == player)
-        opponent_score = np.sum(board == opponent)
-        return player_score - opponent_score
     
-     # Heuristic methods
-    def select_move_with_heuristic(self, state, valid_moves, player):
-        position_weights = self.get_position_weights(state.shape[0])
-        best_value = -float('inf')
-        best_move = None
-        for move in valid_moves:
-            value = position_weights[move[0], move[1]]
-            if value > best_value:
-                best_value = value
-                best_move = move
-        return best_move
-
-    def evaluate_state(self, board, player, opponent):
-        position_weights = self.get_position_weights(board.shape[0])
-        player_score = np.sum(position_weights[board == player])
-        opponent_score = np.sum(position_weights[board == opponent])
-        return player_score - opponent_score

@@ -62,6 +62,7 @@ class MinimaxAgent(Agent):
     def __init__(self):
         super(MinimaxAgent, self).__init__()
         self.name = "MinimaxAgent"
+        self.time_limit = 1.996
 
     def step(self, board, player, opponent):
         """
@@ -111,62 +112,91 @@ class MinimaxAgent(Agent):
                         best_score = score
                         best_child = child
                 return best_child
+        
 
-        def minimax(board, depth, alpha, beta, maximizing_player, player, opponent):
-            """
-            Minimax with Alpha-Beta Pruning for endgame.
+        self.start_time = time.time()
+        root_node = Node(board)
+        state = board.copy()
+        valid_moves = get_valid_moves(state, player)
+        if not valid_moves:
+            return None  # No valid moves, pass the turn
+        self.simulation_count = 0
+        best_move = None
+        best_score = -float('inf')
+        alpha = -float('inf')
+        beta = float('inf')
+        depth = 1
 
-            Parameters:
-            - board: numpy.ndarray, current board state.
-            - depth: int, remaining depth to explore.
-            - alpha: float, alpha value for pruning.
-            - beta: float, beta value for pruning.
-            - maximizing_player: bool, True if maximizing player's turn.
-            - player: int, current player number.
-            - opponent: int, opponent's player number.
+        while time.time() - self.start_time < self.time_limit:
+            for move in valid_moves:
+                new_board = deepcopy(board)
+                execute_move(new_board, move, player)
+                score = self.min_value(new_board, depth - 1, alpha, beta, player, opponent)
 
-            Returns:
-            - tuple: (best score, best move)
-            """
-            valid_moves = get_valid_moves(board, player if maximizing_player else opponent)
+                if score > best_score:
+                    best_score = score
+                    best_move = move
 
-            # Terminal condition: game over or max depth reached
-            if depth == 0 or not valid_moves:
-                player_score = np.sum(board == player)
-                opponent_score = np.sum(board == opponent)
-                return (player_score - opponent_score, None)
+                alpha = max(alpha, best_score)
 
-            best_move = None
-            if maximizing_player:
-                max_eval = -float('inf')
-                for move in valid_moves:
-                    new_board = deepcopy(board)
-                    execute_move(new_board, move, player)
-                    eval, _ = minimax(new_board, depth - 1, alpha, beta, False, player, opponent)
-                    if eval > max_eval:
-                        max_eval = eval
-                        best_move = move
-                    alpha = max(alpha, eval)
-                    if beta <= alpha:
-                        break  # Beta cut-off
-                return (max_eval, best_move)
-            else:
-                min_eval = float('inf')
-                for move in valid_moves:
-                    new_board = deepcopy(board)
-                    execute_move(new_board, move, opponent)
-                    eval, _ = minimax(new_board, depth - 1, alpha, beta, True, player, opponent)
-                    if eval < min_eval:
-                        min_eval = eval
-                        best_move = move
-                    beta = min(beta, eval)
-                    if beta <= alpha:
-                        break  # Alpha cut-off
-                return (min_eval, best_move)
-
-
-        # Use Minimax for endgame
-        _, best_move = minimax(board, depth=15, alpha=-float('inf'), beta=float('inf'),
-                                   maximizing_player=True, player=player, opponent=opponent)
-
+            depth += 1  # Increment depth for iterative deepening
+        print(f"Simulations performed: {self.simulation_count}")
         return best_move
+    
+    def max_value(self, board, depth, alpha, beta, player, opponent):
+        """
+        Maximize the score for the current player.
+        """
+        if depth == 0 or check_endgame(board, player, opponent)[0] or time.time() - self.start_time >= self.time_limit:
+            return self.evaluate(board, player, opponent)
+
+        max_score = -float('inf')
+        valid_moves = get_valid_moves(board, player)
+
+        for move in valid_moves:
+            self.simulation_count += 1  # Increment the simulation counter
+            new_board = deepcopy(board)
+            execute_move(new_board, move, player)
+            score = self.min_value(new_board, depth - 1, alpha, beta, player, opponent)
+
+            max_score = max(max_score, score)
+            if max_score >= beta:
+                return max_score  # Beta cut-off
+            alpha = max(alpha, max_score)
+
+        return max_score
+
+    def min_value(self, board, depth, alpha, beta, player, opponent):
+        """
+        Minimize the score for the opponent.
+        """
+        if depth == 0 or check_endgame(board, player, opponent)[0] or time.time() - self.start_time >= self.time_limit:
+            return self.evaluate(board, player, opponent)
+
+        min_score = float('inf')
+        valid_moves = get_valid_moves(board, opponent)
+
+        for move in valid_moves:
+            self.simulation_count += 1  # Increment the simulation counter
+            new_board = deepcopy(board)
+            execute_move(new_board, move, opponent)
+            score = self.max_value(new_board, depth - 1, alpha, beta, player, opponent)
+
+            min_score = min(min_score, score)
+            if min_score <= alpha:
+                return min_score  # Alpha cut-off
+            beta = min(beta, min_score)
+
+        return min_score
+
+    def evaluate(self, board, player, opponent):
+        """
+        Evaluate the board state based on the disc count difference.
+        """
+        player_score = np.sum(board == player)
+        opponent_score = np.sum(board == opponent)
+        return player_score - opponent_score
+
+        
+
+        
