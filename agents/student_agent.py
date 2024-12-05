@@ -1,5 +1,6 @@
 #python simulator.py --player_1 student_agent --player_2 gpt_greedy_corners_agent --display
 #python simulator.py --player_1 student_agent --player_2 random_agent --display
+#python simulator.py --player_1 student_agent --player_2 random_agent --autoplay --autoplay_runs 10
 # Student agent: Add your own agent here
 from agents.agent import Agent
 from store import register_agent
@@ -72,7 +73,7 @@ class StudentAgent(Agent):
         self.start_time = time.time()
         # node class to save info for gamestates
         class Node:
-            def __init__(self, parent=None, move=None):
+            def __init__(self, parent = None, move = None):
                 # parent (previous gamestate)
                 self.parent = parent
                 # children (valid moves in current gamestate)
@@ -91,8 +92,8 @@ class StudentAgent(Agent):
                 return self.valid_moves_left is not None and len(self.valid_moves_left) == 0
 
             # function to find the best child using the UCT
-            def best_child(self, c_param=1.4):
-                choices_weights = [(child.value / child.visits) + c_param * np.sqrt((2 * np.log(self.visits) / child.visits)) for child in self.children]
+            def best_child(self, c = 1.4):
+                choices_weights = [(child.value / child.visits) + c * np.sqrt((2 * np.log(self.visits) / child.visits)) for child in self.children]
                 return self.children[np.argmax(choices_weights)]
 
         # functions for MCTS
@@ -221,7 +222,7 @@ class StudentAgent(Agent):
             
         # functions for Minimax
         # function to find the max value for player
-        def max_value(self, board, depth, alpha, beta, player, opp):
+        def max_value(board, depth, alpha, beta, player, opp):
             # if the depth is 0 or we reached the end of the game or we exceed the time limit
             if (depth == 0) or (check_endgame(board, player, opp)[0]) or (time.time() - self.start_time >= self.time_limit):
                 # return the evaluation of the board given the player and opponent
@@ -253,7 +254,7 @@ class StudentAgent(Agent):
             return max_score
 
         # function to find the min value for opponent
-        def min_value(self, board, depth, alpha, beta, player, opp):
+        def min_value(board, depth, alpha, beta, player, opp):
             # if the depth is 0 or we reached the end of the game or we exceed the time limit
             if (depth == 0) or (check_endgame(board, player, opp)[0]) or (time.time() - self.start_time >= self.time_limit):
                 # return the evaluation of the board given the player and opponent
