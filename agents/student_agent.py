@@ -68,6 +68,10 @@ class StudentAgent(Agent):
             ])
         }
 
+    def get_tile_values(self, n):
+        # Use the predefined positional weights from value_boards
+        return self.value_boards.get(n)
+
     def step(self, chess_board, player, opponent):
         # set current start time
         self.start_time = time.time()
@@ -100,7 +104,11 @@ class StudentAgent(Agent):
         # function for tree policy in MCTS (selection/expansion phase in MCTS)
         def tree_policy(node, board, cur_player, cur_opp):
             # while loop keeps running as long as we are within the time limit
-            while (time.time() - self.start_time <= self.time_limit):
+            while True:
+                if (time.time() - self.start_time > self.time_limit):
+                    # return the node, board, current player, and current opponent
+                    return node, board, cur_player, cur_opp
+                
                 # if the gamestate has no valid moves that we haven't tried
                 if (node.valid_moves_left is None):
                     # set it to valid moves for the gamestate
@@ -133,12 +141,10 @@ class StudentAgent(Agent):
                     # swap player and opponent
                     cur_player, cur_opp = cur_opp, cur_player
 
-            # return the node, board, current player, and current opponent
-            return node, board, cur_player, cur_opp
+            
 
         # function for default policy in MCTS (simulation phase in MCTS)
         def default_policy(board, cur_player, cur_opp):
-            player = cur_player
             # set max depth limit
             max_depth = 10
             # current depth is 0
@@ -147,7 +153,7 @@ class StudentAgent(Agent):
             # while loop keeps running while depth is less than the depth limit
             while (depth < max_depth):
                 # if we're past the time limit
-                if (time.time() - self.start_time >= self.time_limit):
+                if (time.time() - self.start_time > self.time_limit):
                     # then break out of the while loop
                     break
 
@@ -180,6 +186,7 @@ class StudentAgent(Agent):
         
          # function to select the best move from valid_moves using heuristics
         def select_move_using_heuristics(board, valid_moves):
+            tile_values = self.get_tile_values(board.shape[0])
             # initialize the best value to be -infinity
             best_score = -float('inf')
             # initialize the best move to be none
@@ -188,7 +195,7 @@ class StudentAgent(Agent):
             # iterate through valid_moves list
             for move in valid_moves:
                 # get the score of the move from value_boards
-                score = self.value_boards[board.shape[0]][move[0], move[1]]
+                score = tile_values[move[0], move[1]]
                 # if the score of the move is better than the current best score
                 if (score > best_score):
                     # set the best score to score
@@ -201,10 +208,11 @@ class StudentAgent(Agent):
         
         # function to evaluate the gamestate
         def evaluate_gamestate(board, player, opp):
+            tile_values = self.get_tile_values(board.shape[0])
             # calculate the player's value of tiles placed based on value_boards
-            player_score = np.sum(self.value_boards[board.shape[0]][board == player])
+            player_score = np.sum(tile_values[board == player])
             # calculate the opponents's value of tiles placed based on value_boards
-            opp_score = np.sum(self.value_boards[board.shape[0]][board == opp])
+            opp_score = np.sum(tile_values[board == opp])
             # return the player's score - opponent's score
             return player_score - opp_score
 
@@ -324,7 +332,7 @@ class StudentAgent(Agent):
         # if the algo is MCTS
         if algo == 'mcts':
             # while loop runs as long as we're within time limit
-            while (time.time() - self.start_time <= self.time_limit):
+            while (time.time() - self.start_time < self.time_limit):
                 # make a copy of the current board
                 sim_board = chess_board.copy()
                 # set node to the root node
@@ -335,14 +343,14 @@ class StudentAgent(Agent):
                 cur_opp = opponent
 
                 # if we go past the time limit
-                if (time.time() - self.start_time >= self.time_limit):
+                if (time.time() - self.start_time > self.time_limit):
                     # break out of while loop
                     break  
                 # apply tree policy to get node, board after simulation, current player, and current opponent
                 node, sim_board, cur_player, cur_opp = tree_policy(node, sim_board, cur_player, cur_opp)
 
                 # if we got past the time limit
-                if (time.time() - self.start_time >= self.time_limit):
+                if (time.time() - self.start_time > self.time_limit):
                     # break out of while loop
                     break
                 # get the value of the board from simulation by applying default policy
@@ -374,7 +382,7 @@ class StudentAgent(Agent):
             depth = 1
 
             # while loop keeps running as long as we're within time limit
-            while (time.time() - self.start_time <= self.time_limit):
+            while (time.time() - self.start_time < self.time_limit):
                 # iterate through moves in valid moves
                 for move in valid_moves:
                     # create deepcopy of board
