@@ -1,11 +1,5 @@
 # Reversi/Othello!
 
-**Project Description & Template** : https://www.overleaf.com/read/vnygbjryrxrt#7b70cb
-
-<p align="center">
-  <img src="https://t4.ftcdn.net/jpg/00/90/53/03/240_F_90530312_4Mg3HCsCMW91NVHKWNlBaRo8F5pHhN3c.jpg?w=690&h=388&c=crop">
-</p>
-
 ## Setup
 
 To setup the game, clone this repository and install the dependencies:
@@ -57,7 +51,7 @@ During autoplay, boards are drawn randomly between size `--board_size_min` and `
 
 ## Develop your own general agent(s):
 
-You need to write one agent and submit it for the class project, but you may develop additional agents during the development process to play against eachother, gather data or similar. To write a general agent:
+To write a general agent:
 
 1. Modify **ONLY** the [`student_agent.py`](agents/student_agent.py) file in [`agents/`](agents/) directory, which extends the [`agents.Agent`](agents/agent.py) class.
 2. Do not add any additional imports.
@@ -68,7 +62,7 @@ python simulator.py --player_1 student_agent --player_2 random_agent --autoplay`
 
 ## Advanced and optional: What if I want to create other agents and test them against eachother?
 
-There can only be one file called student_agent.py, and that's already perfectly set up to interact with our evaluation code, but you may create other agents during development. To get new files interacting correctly, you need to change a few specific things. Let's suppose you want to create second_agent.py, a second try at your student agent.
+There can only be one file called student_agent.py, and that's already perfectly set up to interact with our evaluation code. To get new files interacting correctly, you need to change a few specific things. Let's suppose you want to create second_agent.py.
 
 1. Create the new file by starting from a copy of the provided student_agent. ```$ cp agents/student_agent.py agents/second_agent.py```
 2. Change the name in the decorator. Edit (@register_agent("student_agent")) instead to @register_agent("second_agent"), and the class name from `StudentAgent` to `SecondAgent`. 
@@ -76,16 +70,6 @@ There can only be one file called student_agent.py, and that's already perfectly
 4. Now you can pit your two agents against each other in the simulator.py by running ```bash python simulator.py --player_1 student_agent --player_2 second_agent --display``` and see which idea is working better.
 5. Adapt all of the above to create even more agents
     
-## To wrap up and get ready to submit, prepare the strongest player you have found in the student_agent.py file, to be handed in for performance evaluation:
-
-You will submit only one code file for grading: student_agent.py. Here are a few last minute things to double-check, since your agent must follow some special rules to make it possible to run in auto-grading. Failing to follow the instructions below precisely risks an automatic assignment of "poor" for the performance grade as we don't have time to debug everyone's solution.
-
-1. Check that you didn't modify anything outside of student_agent. You can use git status and git diff for this.
-2. Ensure student_agent does not have any additional imports.
-3. The `StudentAgent` class *must be* decorated with exactly the name `student_agent`. Do not add any comments or change that line at all, as we will be interacting with it via scripting as we auto-run your agents in the tournament. (Common mistake if you did most of your dev in a differently named file, best_agent, or similar, and then copied the contents without checking).
-4. Check the time limits are satisfied for all board sizes in the range 6-12, inclusive.
-5. As a final test before submitting, make 100% sure the player you wish to be evaluated on runs correctly with the exact command we'll use in auto-grading ```python simulator.py --player_1 random_agent --player_2 student_agent --autoplay```
-
 ## Full API
 
 ```bash
@@ -104,15 +88,3 @@ optional arguments:
   --autoplay
   --autoplay_runs AUTOPLAY_RUNS
 ```
-
-## Issues? Bugs? Questions?
-
-Feel free to open an issue in this repository, or contact us in Ed thread.
-
-## About
-
-This is a class project for COMP 424, McGill University, Fall 2024 (it was originally forked with the permission of Jackie Cheung).
-
-## License
-
-[MIT](LICENSE)
