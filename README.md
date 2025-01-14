@@ -57,8 +57,7 @@ To write a general agent:
 2. Do not add any additional imports.
 3. Implement the `step` function with your game logic. Make extensive use of the functions imported from helpers.py which should be the majority of what you need to interact with the game. Any further logic can be coded directly in your file as global or class variables, functions, etc. Do not import world.py.
 4. Test your performance against the random_agent with ```bash
-python simulator.py --player_1 student_agent --player_2 random_agent --autoplay```
-5. Try playing against your own bot as a human. Consistently beating your own best-effort human play is a very good indicator of an A performance grade.
+python simulator.py --player_1 student_agent --player_2 random_agent --autoplay```.
 
 ## Advanced and optional: What if I want to create other agents and test them against eachother?
 
